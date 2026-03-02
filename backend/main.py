@@ -83,8 +83,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
-
 app.include_router(auth_router.router)
 app.include_router(jobs_router.router)
 app.include_router(applications_router.router)
@@ -102,22 +100,21 @@ async def public_plans():
         return [PlanOut.model_validate(p) for p in result.scalars().all()]
 
 
+# Explicit route for uploaded files (works in both dev and production)
+@app.get("/uploads/{filename:path}")
+async def serve_upload(filename: str):
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+    raise HTTPException(status_code=404, detail="File not found")
+
+
 # Serve frontend static build if it exists (production)
 if FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIR / "assets")), name="frontend-assets")
 
     @app.get("/{full_path:path}")
     async def serve_spa(request: Request, full_path: str):
-        # API routes — let FastAPI handle normally
-        if full_path.startswith("api/"):
-            raise HTTPException(status_code=404)
-        # Serve uploaded files directly
-        if full_path.startswith("uploads/"):
-            upload_file = Path(UPLOAD_DIR) / full_path.replace("uploads/", "", 1)
-            if upload_file.is_file():
-                return FileResponse(str(upload_file))
-            raise HTTPException(status_code=404)
-        # Serve frontend static files
         file_path = FRONTEND_DIR / full_path
         if file_path.is_file():
             return FileResponse(str(file_path))
