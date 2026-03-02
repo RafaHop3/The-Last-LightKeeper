@@ -1,45 +1,64 @@
-# Apliquei - Portal de Vagas de Emprego
+# Apliquei - Portal de Vagas
 
-Portal moderno de vagas de emprego com acesso para **recrutadores** e **candidatos**.
+Plataforma de recrutamento com painel para candidatos, recrutadores e admin.
 
-## Tech Stack
+## Stack
+- **Backend:** FastAPI + SQLAlchemy (async) + SQLite
+- **Frontend:** React + Vite + TailwindCSS
+- **Auth:** JWT (JSON Web Tokens)
 
-- **Backend**: FastAPI + SQLAlchemy + SQLite (async)
-- **Frontend**: React + Vite + Tailwind CSS + Lucide Icons
-- **Auth**: JWT (JSON Web Tokens)
-
-## Como Rodar
-
-### Backend
+## Desenvolvimento Local
 
 ```bash
+# Backend
 cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
-```
 
-### Frontend
-
-```bash
+# Frontend
 cd frontend
 npm install
 npm run dev
 ```
 
-O frontend roda em `http://localhost:5173` e faz proxy das chamadas `/api` para o backend em `http://localhost:8000`.
+O frontend roda em `http://localhost:5173` e faz proxy para o backend em `http://localhost:8000`.
+
+## Deploy no Railway
+
+O projeto roda como **monorepo** — um único service que:
+1. Builda o frontend React (`npm run build`)
+2. Instala dependências Python
+3. Roda o FastAPI servindo API + frontend estático
+
+### Variáveis de ambiente no Railway:
+| Variável | Descrição | Default |
+|---|---|---|
+| `SECRET_KEY` | Chave JWT (obrigatória em prod) | `apliquei-super-secret-...` |
+| `DATABASE_URL` | URL do banco | `sqlite+aiosqlite:///./apliquei.db` |
+| `PORT` | Porta (Railway define automaticamente) | `8000` |
+
+### Setup:
+1. Crie um novo projeto no Railway
+2. Conecte o repo GitHub `solariscodes/apliquei`
+3. Defina `SECRET_KEY` nas variáveis de ambiente
+4. Deploy automático via push na `main`
 
 ## Funcionalidades
 
 ### Candidatos
-- Cadastro e login
+- Painel completo com sidebar (Início, Vagas, Candidaturas, Perfil)
 - Busca de vagas com filtros (texto, localização, tipo)
-- Visualização detalhada de vagas
 - Candidatura com carta de apresentação
-- Dashboard com acompanhamento de status
+- Acompanhamento de status das candidaturas
+- Edição de perfil com upload de foto
 
 ### Recrutadores
-- Cadastro e login
+- Dashboard com gestão de vagas
 - Criação, edição e exclusão de vagas
-- Ativação/desativação de vagas
 - Visualização de candidaturas recebidas
 - Gestão de status (pendente, analisado, aceito, rejeitado)
+
+### Admin (Backoffice)
+- Gestão de usuários, planos, configurações
+- Gerenciador de arquivos
+- Visualizador de banco de dados

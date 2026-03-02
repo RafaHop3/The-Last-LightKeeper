@@ -1,9 +1,11 @@
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 
 from app.database import init_db, async_session
@@ -13,6 +15,8 @@ from app.routers import auth_router, jobs_router, applications_router, admin_rou
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
 async def seed_defaults():
@@ -68,9 +72,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Apliquei API", version="1.0.0", lifespan=lifespan)
 
+from app.config import settings as app_settings
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[app_settings.FRONTEND_URL] if app_settings.FRONTEND_URL != "*" else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -95,6 +101,20 @@ async def public_plans():
         return [PlanOut.model_validate(p) for p in result.scalars().all()]
 
 
-@app.get("/")
-async def root():
-    return {"message": "Apliquei API is running!"}
+# Serve frontend static build if it exists (production)
+if FRONTEND_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIR / "assets")), name="frontend-assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(request: Request, full_path: str):
+        # Don't intercept API or uploads routes
+        if full_path.startswith("api/") or full_path.startswith("uploads/"):
+            return
+        file_path = FRONTEND_DIR / full_path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        return FileResponse(str(FRONTEND_DIR / "index.html"))
+else:
+    @app.get("/")
+    async def root():
+        return {"message": "Apliquei API is running!"}
