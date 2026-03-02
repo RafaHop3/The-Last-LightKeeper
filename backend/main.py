@@ -16,6 +16,12 @@ from app.routers import auth_router, jobs_router, applications_router, admin_rou
 UPLOAD_DIR = str(app_settings.UPLOAD_DIR)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# Create a test file to verify serving works
+with open(os.path.join(UPLOAD_DIR, "test.txt"), "w") as f:
+    f.write("Uploads serving is working!")
+
+print(f"Server starting. Uploads directory: {UPLOAD_DIR}")
+
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 

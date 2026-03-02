@@ -20,8 +20,8 @@ COPY backend/ ./backend/
 # Copy frontend build from stage 1
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
-# Create uploads directory
-RUN mkdir -p backend/uploads
+# Create uploads directory with permissions
+RUN mkdir -p backend/uploads && chmod 777 backend/uploads
 
 WORKDIR /app/backend
 
