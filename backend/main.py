@@ -108,9 +108,16 @@ if FRONTEND_DIR.exists():
 
     @app.get("/{full_path:path}")
     async def serve_spa(request: Request, full_path: str):
-        # Don't intercept API or uploads routes
-        if full_path.startswith("api/") or full_path.startswith("uploads/"):
+        # API routes — let FastAPI handle normally
+        if full_path.startswith("api/"):
             raise HTTPException(status_code=404)
+        # Serve uploaded files directly
+        if full_path.startswith("uploads/"):
+            upload_file = Path(UPLOAD_DIR) / full_path.replace("uploads/", "", 1)
+            if upload_file.is_file():
+                return FileResponse(str(upload_file))
+            raise HTTPException(status_code=404)
+        # Serve frontend static files
         file_path = FRONTEND_DIR / full_path
         if file_path.is_file():
             return FileResponse(str(file_path))
