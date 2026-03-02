@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -100,7 +100,13 @@ async def public_plans():
         return [PlanOut.model_validate(p) for p in result.scalars().all()]
 
 
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+# Explicit route for uploaded files (works in both dev and production)
+@app.get("/uploads/{filename:path}")
+async def serve_upload(filename: str):
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+    raise HTTPException(status_code=404, detail="File not found")
 
 
 # Serve frontend static build if it exists (production)
