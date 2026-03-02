@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -51,8 +51,9 @@ async def seed_defaults():
             {"key": "primary_color", "value": "#4f46e5", "category": "theme"},
             {"key": "accent_color", "value": "#d946ef", "category": "theme"},
             {"key": "logo_url", "value": "", "category": "theme"},
-            {"key": "hero_title", "value": "Encontre seu emprego dos sonhos", "category": "content"},
-            {"key": "hero_subtitle", "value": "Conectamos os melhores talentos com as melhores empresas.", "category": "content"},
+            {"key": "hero_tagline", "value": "Recrutamento inteligente para empresas e candidatos", "category": "content"},
+            {"key": "hero_title", "value": "Bem-vindo ao Apliquei", "category": "content"},
+            {"key": "hero_subtitle", "value": "Selecione como você quer usar a plataforma", "category": "content"},
             {"key": "footer_text", "value": "© 2025 Apliquei. Todos os direitos reservados.", "category": "content"},
         ]
         for s in default_settings:
@@ -109,7 +110,7 @@ if FRONTEND_DIR.exists():
     async def serve_spa(request: Request, full_path: str):
         # Don't intercept API or uploads routes
         if full_path.startswith("api/") or full_path.startswith("uploads/"):
-            return
+            raise HTTPException(status_code=404)
         file_path = FRONTEND_DIR / full_path
         if file_path.is_file():
             return FileResponse(str(file_path))
