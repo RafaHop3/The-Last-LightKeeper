@@ -11,6 +11,7 @@ from sqlalchemy import select
 from app.database import init_db, async_session
 from app.models import User, UserRole, Plan, PlanTier, SiteSettings
 from app.auth import hash_password
+from app.config import settings as app_settings
 from app.routers import auth_router, jobs_router, applications_router, admin_router
 
 UPLOAD_DIR = str(app_settings.UPLOAD_DIR)
@@ -78,8 +79,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Apliquei API", version="1.0.0", lifespan=lifespan)
-
-from app.config import settings as app_settings
 
 app.add_middleware(
     CORSMiddleware,
