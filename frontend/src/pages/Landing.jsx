@@ -29,7 +29,7 @@ export default function Landing() {
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 bg-primary-50 border border-primary-100 rounded-full px-4 py-2 mb-6">
               <Sparkles className="w-4 h-4 text-primary-600" />
-              <span className="text-sm font-semibold text-primary-700">A plataforma #1 de empregos do Brasil</span>
+              <span className="text-sm font-semibold text-primary-700">Vanguarda em tecnologia conectando talentos a oportunidades</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-5">
