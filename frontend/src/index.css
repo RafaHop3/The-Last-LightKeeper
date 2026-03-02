@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply text-gray-800;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow-lg shadow-primary-600/25 hover:shadow-primary-600/40 hover:-translate-y-0.5 active:translate-y-0;
+  }
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-gray-700 font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 border border-gray-200 hover:border-gray-300 shadow-sm;
+  }
+  .btn-accent {
+    @apply bg-gradient-to-r from-accent-500 to-primary-600 hover:from-accent-600 hover:to-primary-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow-lg hover:-translate-y-0.5;
+  }
+  .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200;
+  }
+  .btn-success {
+    @apply bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded-xl transition-all duration-200;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300;
+  }
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all duration-200 bg-white text-gray-800 placeholder-gray-400;
+  }
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  }
+  .badge-remote {
+    @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200;
+  }
+  .badge-hybrid {
+    @apply badge bg-amber-50 text-amber-700 border border-amber-200;
+  }
+  .badge-onsite {
+    @apply badge bg-blue-50 text-blue-700 border border-blue-200;
+  }
+  .badge-pending {
+    @apply badge bg-yellow-50 text-yellow-700 border border-yellow-200;
+  }
+  .badge-reviewed {
+    @apply badge bg-blue-50 text-blue-700 border border-blue-200;
+  }
+  .badge-accepted {
+    @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200;
+  }
+  .badge-rejected {
+    @apply badge bg-red-50 text-red-700 border border-red-200;
+  }
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl;
+  }
+}
