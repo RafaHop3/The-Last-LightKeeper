@@ -8,10 +8,11 @@ from app.database import get_db
 from app.models import User, UserRole
 from app.schemas import UserCreate, UserLogin, Token, UserOut, ProfileUpdate
 from app.auth import hash_password, verify_password, create_access_token, get_current_user
+from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+UPLOAD_DIR = str(settings.UPLOAD_DIR)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 

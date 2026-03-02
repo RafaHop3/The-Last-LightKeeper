@@ -15,10 +15,11 @@ from app.schemas import (
     FileOut, DBTableInfo, DBQueryResult, AdminStats,
 )
 from app.auth import get_current_user, hash_password
+from app.config import settings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+UPLOAD_DIR = str(settings.UPLOAD_DIR)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 

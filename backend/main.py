@@ -13,7 +13,7 @@ from app.models import User, UserRole, Plan, PlanTier, SiteSettings
 from app.auth import hash_password
 from app.routers import auth_router, jobs_router, applications_router, admin_router
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+UPLOAD_DIR = str(app_settings.UPLOAD_DIR)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
