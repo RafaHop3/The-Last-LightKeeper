@@ -67,12 +67,11 @@ export default function CandidateLayout({ children }) {
       <div className="p-3 border-t border-gray-100">
         <div className="flex items-center gap-3 px-3 py-2.5">
           {user?.avatar_url ? (
-            <img src={user.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-primary-100" />
-          ) : (
-            <div className="w-9 h-9 bg-gradient-to-br from-primary-100 to-accent-100 rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-primary-700" />
-            </div>
-          )}
+            <img src={user.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-primary-100" onError={(e) => { e.target.onerror = null; e.target.src = '' ; e.target.style.display = 'none'; e.target.parentElement.querySelector('.avatar-fallback').style.display = 'flex' }} />
+          ) : null}
+          <div className="avatar-fallback w-9 h-9 bg-gradient-to-br from-primary-100 to-accent-100 rounded-full flex items-center justify-center" style={{ display: user?.avatar_url ? 'none' : 'flex' }}>
+            <User className="w-4 h-4 text-primary-700" />
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-800 truncate">{user?.name}</p>
             <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>

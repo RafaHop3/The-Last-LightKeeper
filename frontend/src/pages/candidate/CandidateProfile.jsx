@@ -93,7 +93,7 @@ export default function CandidateProfile() {
         <div className="flex items-center gap-6">
           <div className="relative group">
             {avatarPreview ? (
-              <img src={avatarPreview} alt="Avatar" className="w-24 h-24 rounded-2xl object-cover border-2 border-gray-100" />
+              <img src={avatarPreview} alt="Avatar" className="w-24 h-24 rounded-2xl object-cover border-2 border-gray-100" onError={(e) => { e.target.onerror = null; setAvatarPreview(null) }} />
             ) : (
               <div className="w-24 h-24 bg-gradient-to-br from-primary-100 to-accent-100 rounded-2xl flex items-center justify-center">
                 <User className="w-10 h-10 text-primary-400" />
