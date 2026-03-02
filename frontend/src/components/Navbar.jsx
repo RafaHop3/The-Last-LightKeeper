@@ -33,10 +33,7 @@ export default function Navbar() {
             <Link to="/jobs" className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 font-medium px-3 py-2 rounded-lg hover:bg-primary-50 transition-all duration-200">
               <Search className="w-4 h-4" /> Vagas
             </Link>
-            <Link to="/pricing" className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 font-medium px-3 py-2 rounded-lg hover:bg-primary-50 transition-all duration-200">
-              <CreditCard className="w-4 h-4" /> Planos
-            </Link>
-            {user ? (
+                        {user ? (
               <>
                 {user.role === 'admin' && (
                   <Link to="/admin" className="flex items-center gap-1.5 text-gray-600 hover:text-red-600 font-medium px-3 py-2 rounded-lg hover:bg-red-50 transition-all duration-200">
@@ -44,9 +41,14 @@ export default function Navbar() {
                   </Link>
                 )}
                 {user.role === 'recruiter' && (
-                  <Link to="/recruiter" className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 font-medium px-3 py-2 rounded-lg hover:bg-primary-50 transition-all duration-200">
-                    <LayoutDashboard className="w-4 h-4" /> Dashboard
-                  </Link>
+                  <>
+                    <Link to="/pricing" className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 font-medium px-3 py-2 rounded-lg hover:bg-primary-50 transition-all duration-200">
+                      <CreditCard className="w-4 h-4" /> Planos
+                    </Link>
+                    <Link to="/recruiter" className="flex items-center gap-1.5 text-gray-600 hover:text-primary-600 font-medium px-3 py-2 rounded-lg hover:bg-primary-50 transition-all duration-200">
+                      <LayoutDashboard className="w-4 h-4" /> Dashboard
+                    </Link>
+                  </>
                 )}
                 <div className="flex items-center gap-2 ml-2 pl-3 border-l border-gray-200">
                   <div className="w-8 h-8 bg-gradient-to-br from-primary-100 to-accent-100 rounded-full flex items-center justify-center">
@@ -79,10 +81,7 @@ export default function Navbar() {
           <Link to="/jobs" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg hover:bg-gray-50 font-medium text-gray-700">
             Vagas
           </Link>
-          <Link to="/pricing" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg hover:bg-gray-50 font-medium text-gray-700">
-            Planos
-          </Link>
-          {user ? (
+                    {user ? (
             <>
               {user.role === 'admin' && (
                 <Link to="/admin" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg hover:bg-red-50 font-medium text-red-600">
@@ -90,9 +89,14 @@ export default function Navbar() {
                 </Link>
               )}
               {user.role === 'recruiter' && (
-                <Link to="/recruiter" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg hover:bg-gray-50 font-medium text-gray-700">
-                  Dashboard
-                </Link>
+                <>
+                  <Link to="/pricing" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg hover:bg-gray-50 font-medium text-gray-700">
+                    Planos
+                  </Link>
+                  <Link to="/recruiter" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg hover:bg-gray-50 font-medium text-gray-700">
+                    Dashboard
+                  </Link>
+                </>
               )}
               <div className="pt-2 border-t border-gray-100">
                 <div className="flex items-center gap-2 px-3 py-2">
