@@ -1,64 +1,75 @@
-# Apliquei - Portal de Vagas
+﻿# Apliquei - Plataforma de Vagas e Recrutamento
 
-Plataforma de recrutamento com painel para candidatos, recrutadores e admin.
+O **Apliquei** é uma plataforma completa e moderna de empregos, conectando empresas a talentos. O sistema possui três painéis distintos e integrados para Candidatos, Recrutadores e Administradores.
 
-## Stack
-- **Backend:** FastAPI + SQLAlchemy (async) + SQLite
-- **Frontend:** React + Vite + TailwindCSS
-- **Auth:** JWT (JSON Web Tokens)
+## 🚀 Tecnologias (Tech Stack)
 
-## Desenvolvimento Local
+O projeto é um monorepo que utiliza as seguintes tecnologias:
 
+### **Backend**
+- [FastAPI](https://fastapi.tiangolo.com/) - Framework web rápido e moderno em Python.
+- [SQLAlchemy](https://www.sqlalchemy.org/) - ORM com suporte Assíncrono (`aiosqlite`).
+- [Pydantic](https://docs.pydantic.dev/) - Validação de dados e serialização.
+- Autenticação via **JWT** (JSON Web Tokens) com `passlib` e `bcrypt`.
+
+### **Frontend**
+- [React](https://react.dev/) + [Vite](https://vitejs.dev/) - Biblioteca UI e bundler.
+- [Tailwind CSS](https://tailwindcss.com/) - Estilização utilitária e responsiva.
+- [React Router DOM](https://reactrouter.com/) - Roteamento.
+- [Lucide React](https://lucide.dev/) - Ícones SVG modernos.
+- [Axios](https://axios-http.com/) - Cliente HTTP.
+
+---
+
+## 🎯 Funcionalidades por Perfil
+
+### 🧑‍🎓 Candidatos
+- **Painel Integrado:** Toda a experiência ocorre em um painel com barra lateral dedicada.
+- **Busca de Vagas:** Filtros avançados por termo, localização e tipo.
+- **Candidatura Simples:** Envio de carta de apresentação e anexos.
+- **Minhas Candidaturas:** Acompanhamento do status em tempo real.
+- **Perfil:** Edição de bio, links, telefone e upload de foto de perfil (Avatar).
+
+### 🏢 Recrutadores
+- **Dashboard de Gestão:** Visão geral das vagas abertas e candidaturas recentes.
+- **Gestão de Vagas:** Criação, edição e encerramento de postos de trabalho.
+- **Análise de Candidatos:** Leitura da carta de apresentação e alteração do status.
+
+### 🛡️ Administrador (Backoffice)
+- **Visão Geral:** Métricas do site.
+- **Gestão de Usuários:** Edição de dados e papéis (roles) de qualquer usuário.
+- **Configurações e SEO:** Alteração de cores do tema, textos hero, metatags de SEO.
+- **Planos e Preços:** Gestão de tiers (Grátis, Básico, Pro, Enterprise).
+- **File Manager e Database Viewer.**
+
+---
+
+## 🛠️ Como Rodar Localmente
+
+### 1. Backend (API)
 ```bash
-# Backend
 cd backend
+python -m venv venv
+# Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
+```
 
-# Frontend
+### 2. Frontend (React)
+```bash
 cd frontend
 npm install
 npm run dev
 ```
+Acesse `http://localhost:5173`. O frontend faz proxy das rotas `/api` para `http://localhost:8000`.
 
-O frontend roda em `http://localhost:5173` e faz proxy para o backend em `http://localhost:8000`.
+---
 
-## Deploy no Railway
+## 🚢 Deploy (Produção via Railway)
 
-O projeto roda como **monorepo** — um único service que:
-1. Builda o frontend React (`npm run build`)
-2. Instala dependências Python
-3. Roda o FastAPI servindo API + frontend estático
+O projeto está configurado para deploy em um único serviço no [Railway](https://railway.app) via `Dockerfile` multi-stage. O FastAPI serve a API em `/api/*` e o build estático do React (`frontend/dist`) na raiz `/`.
 
-### Variáveis de ambiente no Railway:
-| Variável | Descrição | Default |
-|---|---|---|
-| `SECRET_KEY` | Chave JWT (obrigatória em prod) | `apliquei-super-secret-...` |
-| `DATABASE_URL` | URL do banco | `sqlite+aiosqlite:///./apliquei.db` |
-| `PORT` | Porta (Railway define automaticamente) | `8000` |
+1. Crie um projeto no Railway e conecte este repositório do GitHub.
+2. Configure a variável de ambiente: `SECRET_KEY` (obrigatória em produção).
+3. O Railway fará o build do Node.js, depois do Python, e iniciará tudo na mesma porta via Uvicorn automaticamente.
 
-### Setup:
-1. Crie um novo projeto no Railway
-2. Conecte o repo GitHub `solariscodes/apliquei`
-3. Defina `SECRET_KEY` nas variáveis de ambiente
-4. Deploy automático via push na `main`
-
-## Funcionalidades
-
-### Candidatos
-- Painel completo com sidebar (Início, Vagas, Candidaturas, Perfil)
-- Busca de vagas com filtros (texto, localização, tipo)
-- Candidatura com carta de apresentação
-- Acompanhamento de status das candidaturas
-- Edição de perfil com upload de foto
-
-### Recrutadores
-- Dashboard com gestão de vagas
-- Criação, edição e exclusão de vagas
-- Visualização de candidaturas recebidas
-- Gestão de status (pendente, analisado, aceito, rejeitado)
-
-### Admin (Backoffice)
-- Gestão de usuários, planos, configurações
-- Gerenciador de arquivos
-- Visualizador de banco de dados
