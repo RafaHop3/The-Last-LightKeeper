@@ -203,12 +203,19 @@ export class CollisionSystem {
     handlePlayerOrbCollision(event) {
         // Collect orb
         const orbEntity = event.layerA === 'orb' ? event.entityA : event.entityB;
+        const playerEntity = event.layerA === 'player' ? event.entityA : event.entityB;
         const orb = this.em.getComponent(orbEntity, 'Orb');
 
         if (orb && !this.em.getComponent(orbEntity, 'Inactive')) {
             // Award score for orb collection
             if (this.gameState) {
                 this.gameState.addScore(50);
+            }
+
+            // *** Increment the player's Collector.count (orb progress bar) ***
+            const collector = this.em.getComponent(playerEntity, 'Collector');
+            if (collector) {
+                collector.count = (collector.count || 0) + 1;
             }
 
             // Return orb to pool instead of permanently destroying it

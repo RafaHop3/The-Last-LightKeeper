@@ -419,10 +419,29 @@ export class CircleManager {
 
     /**
      * Check if circle is completed (all orbs collected)
+     * Uses orbPool.activeEntities as the source of truth since the tracking
+     * array is never shrunk when orbs are collected.
      * @returns {boolean} - True if circle is completed
      */
     isCircleCompleted() {
+        if (this.currentCircle === 0) return false;
+        // Sync tracking array against pool's live activeEntities
+        this.currentActiveOrbs = this.currentActiveOrbs.filter(
+            id => this.orbPool && this.orbPool.activeEntities.has(id)
+        );
         return this.currentActiveOrbs.length === 0;
+    }
+
+    /**
+     * Get how many orbs have been collected this circle
+     * @returns {number} - Collected orb count
+     */
+    getCollectedOrbCount() {
+        const remaining = this.currentActiveOrbs.filter(
+            id => this.orbPool && this.orbPool.activeEntities.has(id)
+        ).length;
+        const total = this.currentActiveOrbs.length + (this._orbsTotal || 0) - remaining;
+        return (this._orbsTotal || 0) - remaining;
     }
 
     /**

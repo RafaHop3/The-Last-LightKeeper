@@ -1,4 +1,4 @@
-/**
+﻿/**
  * THE LAST LIGHTKEEPER - Main Entry Point
  * Vite + ES Modules Architecture
  * ECS-based game loop orchestration
@@ -53,6 +53,7 @@ const gameState = new GameState();
 const orbPrefab = (entity, em) => {
     em.addComponent(entity, 'Position', { x: 0, y: 0 });
     em.addComponent(entity, 'Renderable', { color: '#ffff99', radius: 8 });
+    em.addComponent(entity, 'Collider', { radius: 14, layer: 'orb' });
     em.addComponent(entity, 'Orb', {});
 };
 
@@ -60,7 +61,9 @@ const enemyPrefab = (entity, em) => {
     em.addComponent(entity, 'Position', { x: 0, y: 0 });
     em.addComponent(entity, 'Velocity', { vx: 0, vy: 0 });
     em.addComponent(entity, 'Renderable', { color: '#ff3333', radius: 15 });
+    em.addComponent(entity, 'Collider', { radius: 18, layer: 'enemy' });
     em.addComponent(entity, 'Health', { current: 50, max: 50 });
+    em.addComponent(entity, 'Enemy', { type: 'default', damage: 12 });
 };
 
 const bulletPrefab = (entity, em) => {
@@ -156,6 +159,7 @@ function setupPlayer() {
     em.addComponent(playerEntity, 'Position', { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 });
     em.addComponent(playerEntity, 'Velocity', { vx: 0, vy: 0 });
     em.addComponent(playerEntity, 'Renderable', { color: '#00ffcc', radius: 15 });
+    em.addComponent(playerEntity, 'Collider', { radius: 15, layer: 'player' });
     em.addComponent(playerEntity, 'PlayerControlled', { baseSpeed: 320 });
     em.addComponent(playerEntity, 'Health', { current: 100, max: 100 });
     em.addComponent(playerEntity, 'Weapon', {
@@ -229,9 +233,15 @@ function checkGameConditions() {
             const bonusPoints = 500 * gameState.circle;
             gameState.addScore(bonusPoints);
 
+            // Reset collector count for the new circle
+            if (playerEntity !== null) {
+                const collector = em.getComponent(playerEntity, 'Collector');
+                if (collector) collector.count = 0;
+            }
+
             gameState.advanceCircle();
             circleManager.loadCircle(nextCircle);
-            hudSystem.addNotification?.(`⚔5️ Círculo ${nextCircle}: ${CIRCLE_CONFIGS[nextCircle]?.name}`, '#ff8800', 3000);
+            hudSystem.addNotification?.(`âš”ï¸ CÃ­rculo ${nextCircle}: ${CIRCLE_CONFIGS[nextCircle]?.name}`, '#ff8800', 3000);
             hudSystem.addNotification?.(`+${bonusPoints.toLocaleString()} BONUS!`, '#ffdd00', 2500);
         } else {
             // Award final boss bonus
@@ -296,188 +306,425 @@ let bgTime = 0;
 function drawCircleBackground(circleNumber, dt) {
     bgTime += dt;
     const t = bgTime;
-    const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2;
+    const W = GAME_WIDTH, H = GAME_HEIGHT;
+    const cx = W / 2, cy = H / 2;
 
     switch (circleNumber) {
-        case 1: // LIMBO - Gray fog
-            {
-                ctx.fillStyle = '#1a1a22';
-                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                for (let i = 0; i < 12; i++) {
-                    const px = (Math.sin(t * 0.15 + i * 1.7) * 0.5 + 0.5) * GAME_WIDTH;
-                    const py = (Math.cos(t * 0.1 + i * 2.3) * 0.5 + 0.5) * GAME_HEIGHT;
-                    const r = 80 + Math.sin(t * 0.5 + i) * 30;
-                    const alpha = 0.04 + Math.sin(t * 0.3 + i) * 0.02;
-                    const grad = ctx.createRadialGradient(px, py, 0, px, py, r);
-                    grad.addColorStop(0, `rgba(140,140,160,${alpha})`);
-                    grad.addColorStop(1, 'transparent');
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                }
-                break;
+
+        // â”€â”€ 1. LIMBO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        case 1: {
+            // Deep charcoal base
+            ctx.fillStyle = '#10101a';
+            ctx.fillRect(0, 0, W, H);
+
+            // Large translucent fog blobs drifting across screen
+            for (let i = 0; i < 18; i++) {
+                const px = (Math.sin(t * 0.12 + i * 1.7) * 0.5 + 0.5) * W;
+                const py = (Math.cos(t * 0.08 + i * 2.1) * 0.5 + 0.5) * H;
+                const r = 100 + Math.sin(t * 0.4 + i) * 50;
+                const a = 0.08 + Math.sin(t * 0.25 + i * 0.9) * 0.04;
+                const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+                g.addColorStop(0, `rgba(170,170,200,${a})`);
+                g.addColorStop(0.5, `rgba(100,100,130,${a * 0.5})`);
+                g.addColorStop(1, 'transparent');
+                ctx.fillStyle = g;
+                ctx.fillRect(0, 0, W, H);
             }
-        case 2: // LUST - Pink swirling wind
-            {
-                ctx.fillStyle = '#1a0a1e';
-                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                for (let i = 0; i < 20; i++) {
-                    const x1 = -100 + ((t * 60 + i * 55) % (GAME_WIDTH + 200));
-                    const y1 = (Math.sin(t * 0.4 + i * 0.8) * 100 + i * 37) % GAME_HEIGHT;
-                    const alpha = 0.06 + Math.sin(t + i) * 0.03;
-                    ctx.strokeStyle = `rgba(255,100,180,${alpha})`;
-                    ctx.lineWidth = 1.5 + Math.sin(t + i) * 1;
-                    ctx.beginPath();
-                    ctx.moveTo(x1, y1);
-                    ctx.bezierCurveTo(x1 + 100, y1 - 40, x1 + 150, y1 + 40, x1 + 220, y1);
-                    ctx.stroke();
-                }
-                break;
+
+            // Slowly spinning grey rings
+            for (let i = 0; i < 5; i++) {
+                const r = 120 + i * 80;
+                const a = 0.06 - i * 0.008;
+                ctx.strokeStyle = `rgba(160,160,180,${a})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r + Math.sin(t * 0.2 + i) * 10, 0, Math.PI * 2);
+                ctx.stroke();
             }
-        case 3: // GLUTTONY - Brown mud/rain
-            {
-                ctx.fillStyle = '#1a1008';
-                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                for (let i = 0; i < 30; i++) {
-                    const x = (i * 37 + t * 10) % GAME_WIDTH;
-                    const yStart = ((t * 80 + i * 23) % (GAME_HEIGHT + 20)) - 20;
-                    const alpha = 0.1 + Math.sin(i * 1.3) * 0.05;
-                    ctx.strokeStyle = `rgba(100,60,20,${alpha})`;
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.moveTo(x, yStart);
-                    ctx.lineTo(x - 2, yStart + 18);
-                    ctx.stroke();
-                }
-                break;
+
+            // Ghostly vertical shafts of light
+            for (let i = 0; i < 6; i++) {
+                const sx = (i / 5) * W + Math.sin(t * 0.1 + i * 1.2) * 30;
+                const sha = 0.04 + Math.sin(t * 0.6 + i) * 0.02;
+                const sg = ctx.createLinearGradient(sx, 0, sx, H);
+                sg.addColorStop(0, 'transparent');
+                sg.addColorStop(0.4, `rgba(200,200,220,${sha})`);
+                sg.addColorStop(1, 'transparent');
+                ctx.fillStyle = sg;
+                ctx.fillRect(sx - 15, 0, 30, H);
             }
-        case 4: // GREED - Gold shimmer
-            {
-                ctx.fillStyle = '#120e00';
-                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                for (let i = 0; i < 50; i++) {
-                    const sx = ((i * 137.5) % GAME_WIDTH);
-                    const sy = ((i * 91.3) % GAME_HEIGHT);
-                    const pa = 0.3 + Math.sin(t * 3 + i * 0.7) * 0.3;
-                    const ps = 1 + Math.sin(t * 2 + i) * 0.5;
-                    const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, ps * 4);
-                    grad.addColorStop(0, `rgba(255,215,0,${pa})`);
-                    grad.addColorStop(1, 'transparent');
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(sx, sy, ps * 4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                break;
+            break;
+        }
+
+        // â”€â”€ 2. LUST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        case 2: {
+            ctx.fillStyle = '#120010';
+            ctx.fillRect(0, 0, W, H);
+
+            // Warm pink radial from center
+            const lustGrd = ctx.createRadialGradient(cx, cy, 50, cx, cy, 500);
+            lustGrd.addColorStop(0, 'rgba(180,0,80,0.18)');
+            lustGrd.addColorStop(1, 'transparent');
+            ctx.fillStyle = lustGrd;
+            ctx.fillRect(0, 0, W, H);
+
+            // Dense swirling wind ribbons
+            for (let i = 0; i < 30; i++) {
+                const x1 = -120 + ((t * 70 + i * 40) % (W + 240));
+                const y1 = (Math.sin(t * 0.35 + i * 0.9) * 120 + i * 24) % H;
+                const amp = 30 + Math.sin(i * 0.7) * 20;
+                const a = 0.10 + Math.sin(t * 1.2 + i * 0.6) * 0.05;
+                const hue = 320 + Math.sin(t + i) * 20;
+                ctx.strokeStyle = `hsla(${hue},100%,65%,${a})`;
+                ctx.lineWidth = 2 + Math.sin(t * 0.8 + i) * 1.2;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.bezierCurveTo(
+                    x1 + 80, y1 - amp,
+                    x1 + 160, y1 + amp,
+                    x1 + 240, y1 + Math.sin(t + i) * 10
+                );
+                ctx.stroke();
             }
-        case 5: // WRATH - Fire at base
-            {
-                ctx.fillStyle = '#140000';
-                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                for (let i = 0; i < 16; i++) {
-                    const fx = (i / 16) * (GAME_WIDTH + 40) - 20;
-                    const fh = 60 + Math.sin(t * 4 + i * 1.3) * 40 + Math.sin(t * 7 + i) * 20;
-                    const alpha = 0.3 + Math.sin(t * 3 + i) * 0.1;
-                    const grad = ctx.createLinearGradient(fx, GAME_HEIGHT, fx, GAME_HEIGHT - fh);
-                    grad.addColorStop(0, `rgba(255,80,0,${alpha})`);
-                    grad.addColorStop(0.5, `rgba(255,160,0,${alpha * 0.5})`);
-                    grad.addColorStop(1, 'transparent');
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(fx - 20, GAME_HEIGHT - fh, 40, fh);
-                }
-                break;
+
+            // Pink heart pulses at center
+            const hPulse = 0.5 + Math.sin(t * 3) * 0.3;
+            ctx.fillStyle = `rgba(255,80,140,${hPulse * 0.08})`;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 80 + Math.sin(t * 3) * 10, 0, Math.PI * 2);
+            ctx.fill();
+            break;
+        }
+
+        // â”€â”€ 3. GLUTTONY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        case 3: {
+            ctx.fillStyle = '#0e0a04';
+            ctx.fillRect(0, 0, W, H);
+
+            // Thick mud floor gradient
+            const mudGrd = ctx.createLinearGradient(0, H * 0.65, 0, H);
+            mudGrd.addColorStop(0, 'rgba(60,35,10,0)');
+            mudGrd.addColorStop(1, 'rgba(60,35,10,0.25)');
+            ctx.fillStyle = mudGrd;
+            ctx.fillRect(0, H * 0.65, W, H * 0.35);
+
+            // Mud bubble blobs
+            for (let i = 0; i < 14; i++) {
+                const bx = (i * 83 + Math.sin(t * 0.1 + i) * 20) % W;
+                const by = H * 0.75 + Math.sin(t * 0.6 + i * 1.3) * 20;
+                const br = 12 + Math.sin(t * 1.5 + i) * 6;
+                const ba = 0.15 + Math.sin(t * 2 + i) * 0.07;
+                ctx.fillStyle = `rgba(100,60,20,${ba})`;
+                ctx.beginPath();
+                ctx.arc(bx, by, br, 0, Math.PI * 2);
+                ctx.fill();
             }
-        case 6: // HERESY - Flaming tomb columns
-            {
-                ctx.fillStyle = '#0a0500';
-                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                for (let i = 0; i < 8; i++) {
-                    const tx = 80 + i * 120;
-                    const th = 150 + Math.sin(t * 2 + i) * 30;
-                    const alpha = 0.2 + Math.sin(t * 1.5 + i * 0.7) * 0.1;
-                    // Tomb stone
-                    ctx.fillStyle = `rgba(40,20,10,${alpha * 2})`;
-                    ctx.fillRect(tx - 15, GAME_HEIGHT - th, 30, th);
-                    // Flame
-                    const fGrad = ctx.createLinearGradient(tx, GAME_HEIGHT - th - 30, tx, GAME_HEIGHT - th);
-                    fGrad.addColorStop(0, 'transparent');
-                    fGrad.addColorStop(0.4, `rgba(255,120,0,${alpha})`);
-                    fGrad.addColorStop(1, `rgba(255,60,0,${alpha * 1.5})`);
-                    ctx.fillStyle = fGrad;
-                    ctx.fillRect(tx - 10, GAME_HEIGHT - th - 30, 20, 30);
-                }
-                break;
+
+            // Heavy rain streaks
+            for (let i = 0; i < 50; i++) {
+                const rx = (i * 21 + ((t * 60) % W)) % W;
+                const ryS = ((t * 200 + i * 17) % (H + 30)) - 30;
+                const rlen = 14 + (i % 3) * 8;
+                const ra = 0.12 + Math.sin(i * 0.7) * 0.05;
+                ctx.strokeStyle = `rgba(110,70,25,${ra})`;
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(rx, ryS);
+                ctx.lineTo(rx - 3, ryS + rlen);
+                ctx.stroke();
             }
-        case 7: // VIOLENCE - Blood river waves
-            {
-                ctx.fillStyle = '#0d0000';
-                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                for (let w = 0; w < 5; w++) {
-                    const yBase = 400 + w * 60 + Math.sin(t * 0.5 + w) * 20;
-                    const alpha = 0.1 + w * 0.04;
-                    ctx.fillStyle = `rgba(120,0,0,${alpha})`;
-                    ctx.beginPath();
-                    ctx.moveTo(0, yBase);
-                    for (let x = 0; x <= GAME_WIDTH; x += 20) {
-                        const y = yBase + Math.sin((x / GAME_WIDTH) * Math.PI * 4 + t * 1.5 + w * 0.5) * 15;
-                        ctx.lineTo(x, y);
-                    }
-                    ctx.lineTo(GAME_WIDTH, GAME_HEIGHT);
-                    ctx.lineTo(0, GAME_HEIGHT);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-                break;
+            break;
+        }
+
+        // â”€â”€ 4. GREED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        case 4: {
+            ctx.fillStyle = '#0a0800';
+            ctx.fillRect(0, 0, W, H);
+
+            // Deep gold radial vignette
+            const greedGrd = ctx.createRadialGradient(cx, cy, 80, cx, cy, 550);
+            greedGrd.addColorStop(0, 'rgba(180,130,0,0.12)');
+            greedGrd.addColorStop(1, 'transparent');
+            ctx.fillStyle = greedGrd;
+            ctx.fillRect(0, 0, W, H);
+
+            // Shimmering gold particle field (coins)
+            for (let i = 0; i < 70; i++) {
+                const sx = ((i * 137.5) % W);
+                const sy = ((i * 91.3 + t * 8) % H);
+                const pa = 0.2 + Math.sin(t * 4 + i * 0.9) * 0.2;
+                const ps = 1.5 + Math.sin(t * 2.5 + i) * 1;
+                const hue = 43 + Math.sin(t + i * 0.5) * 10;
+                const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, ps * 5);
+                grd.addColorStop(0, `hsla(${hue},100%,65%,${pa})`);
+                grd.addColorStop(1, 'transparent');
+                ctx.fillStyle = grd;
+                ctx.beginPath();
+                ctx.ellipse(sx, sy, ps * 5, ps * 2, t * 0.5 + i, 0, Math.PI * 2);
+                ctx.fill();
             }
-        case 8: // FRAUD - Purple spiral void
-            {
-                ctx.fillStyle = '#060010';
-                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                for (let i = 1; i <= 8; i++) {
-                    const r = 60 + i * 45 + Math.sin(t * 0.4 + i * 0.6) * 15;
-                    const alpha = 0.06 - i * 0.005;
-                    if (alpha <= 0) break;
-                    ctx.strokeStyle = `rgba(140,0,220,${alpha})`;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, r, t * (i % 2 === 0 ? 0.3 : -0.3), t * (i % 2 === 0 ? 0.3 : -0.3) + Math.PI * 2);
-                    ctx.stroke();
-                }
-                break;
+
+            // Pulsing golden rings from center
+            for (let i = 0; i < 4; i++) {
+                const rr = ((t * 80 + i * 120) % 500);
+                const ra = (1 - rr / 500) * 0.15;
+                ctx.strokeStyle = `rgba(255,215,0,${ra})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+                ctx.stroke();
             }
-        case 9: // TREACHERY - Ice cracks
-            {
-                ctx.fillStyle = '#020d1a';
-                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-                // Ice sheen
-                const iceGrad = ctx.createLinearGradient(0, GAME_HEIGHT * 0.6, 0, GAME_HEIGHT);
-                iceGrad.addColorStop(0, 'rgba(0,180,220,0.04)');
-                iceGrad.addColorStop(1, 'rgba(0,220,255,0.10)');
-                ctx.fillStyle = iceGrad;
-                ctx.fillRect(0, GAME_HEIGHT * 0.6, GAME_WIDTH, GAME_HEIGHT * 0.4);
-                // Frost cracks
-                for (let i = 0; i < 12; i++) {
-                    const cx2 = (i * 97 + 50) % GAME_WIDTH;
-                    const cy2 = GAME_HEIGHT * 0.65 + ((i * 61) % (GAME_HEIGHT * 0.3));
-                    const alpha = 0.08 + Math.sin(t * 0.5 + i) * 0.03;
-                    ctx.strokeStyle = `rgba(160,240,255,${alpha})`;
-                    ctx.lineWidth = 0.8;
-                    ctx.beginPath();
-                    ctx.moveTo(cx2, cy2);
-                    ctx.lineTo(cx2 + 30 + Math.sin(i) * 20, cy2 + 20 + Math.cos(i * 1.4) * 15);
-                    ctx.moveTo(cx2, cy2);
-                    ctx.lineTo(cx2 - 20 + Math.cos(i * 0.7) * 15, cy2 + 15);
-                    ctx.stroke();
-                }
-                break;
+            break;
+        }
+
+        // â”€â”€ 5. WRATH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        case 5: {
+            ctx.fillStyle = '#0d0000';
+            ctx.fillRect(0, 0, W, H);
+
+            // Hellish sky gradient (embers rising)
+            const wrathSky = ctx.createLinearGradient(0, 0, 0, H);
+            wrathSky.addColorStop(0, 'rgba(80,0,0,0.3)');
+            wrathSky.addColorStop(0.6, 'transparent');
+            ctx.fillStyle = wrathSky;
+            ctx.fillRect(0, 0, W, H);
+
+            // Wide fire columns â€” tall and dramatic
+            for (let i = 0; i < 22; i++) {
+                const fx = (i / 21) * W;
+                const fh = 100 + Math.sin(t * 3.5 + i * 1.4) * 70 + Math.sin(t * 7.2 + i * 2.1) * 35;
+                const fa = 0.5 + Math.sin(t * 2 + i) * 0.15;
+                const fg = ctx.createLinearGradient(fx, H, fx, H - fh);
+                fg.addColorStop(0, `rgba(255,40,0,${fa})`);
+                fg.addColorStop(0.35, `rgba(255,120,0,${fa * 0.6})`);
+                fg.addColorStop(0.7, `rgba(255,200,30,${fa * 0.2})`);
+                fg.addColorStop(1, 'transparent');
+                ctx.fillStyle = fg;
+                ctx.fillRect(fx - 22, H - fh, 44, fh);
             }
+
+            // Floating embers
+            for (let i = 0; i < 40; i++) {
+                const ex = (i * 37 + Math.sin(t * 0.4 + i) * 40) % W;
+                const ey = H - ((t * 50 + i * 23) % (H + 30));
+                const ea = 0.4 + Math.sin(t * 3 + i) * 0.2;
+                const er = 1.5 + Math.sin(t * 5 + i) * 1;
+                ctx.fillStyle = `rgba(255,${100 + (i % 6) * 20},0,${ea})`;
+                ctx.beginPath();
+                ctx.arc(ex, ey, er, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Red ground glow
+            const wrathGlow = ctx.createLinearGradient(0, H - 60, 0, H);
+            wrathGlow.addColorStop(0, 'transparent');
+            wrathGlow.addColorStop(1, 'rgba(200,0,0,0.35)');
+            ctx.fillStyle = wrathGlow;
+            ctx.fillRect(0, H - 60, W, 60);
+            break;
+        }
+
+        // â”€â”€ 6. HERESY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        case 6: {
+            ctx.fillStyle = '#080300';
+            ctx.fillRect(0, 0, W, H);
+
+            // Flaming tomb columns across screen
+            for (let i = 0; i < 10; i++) {
+                const tx = (i / 9) * (W - 40) + 20;
+                const th = 180 + Math.sin(t * 1.8 + i * 0.9) * 50;
+                const ta = 0.35 + Math.sin(t * 1.2 + i * 0.6) * 0.1;
+
+                // Stone tomb body
+                ctx.fillStyle = `rgba(50,25,5,${ta})`;
+                ctx.fillRect(tx - 18, H - th, 36, th);
+                // Stone cross top
+                ctx.fillRect(tx - 6, H - th - 28, 12, 28);
+                ctx.fillRect(tx - 20, H - th - 18, 40, 10);
+
+                // Flame plume above tomb
+                const flameH = 60 + Math.sin(t * 4 + i) * 30;
+                const fGrd = ctx.createLinearGradient(tx, H - th - flameH, tx, H - th);
+                fGrd.addColorStop(0, 'transparent');
+                fGrd.addColorStop(0.3, `rgba(255,180,0,${ta * 0.6})`);
+                fGrd.addColorStop(1, `rgba(255,80,0,${ta * 1.2})`);
+                ctx.fillStyle = fGrd;
+                ctx.fillRect(tx - 14, H - th - flameH, 28, flameH);
+            }
+
+            // Orange sky wash
+            const heresySky = ctx.createLinearGradient(0, 0, 0, H * 0.5);
+            heresySky.addColorStop(0, 'rgba(60,20,0,0.25)');
+            heresySky.addColorStop(1, 'transparent');
+            ctx.fillStyle = heresySky;
+            ctx.fillRect(0, 0, W, H * 0.5);
+            break;
+        }
+
+        // â”€â”€ 7. VIOLENCE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        case 7: {
+            ctx.fillStyle = '#080000';
+            ctx.fillRect(0, 0, W, H);
+
+            // Deep crimson radial center
+            const violGrd = ctx.createRadialGradient(cx, H * 0.4, 30, cx, H * 0.4, 400);
+            violGrd.addColorStop(0, 'rgba(120,0,0,0.18)');
+            violGrd.addColorStop(1, 'transparent');
+            ctx.fillStyle = violGrd;
+            ctx.fillRect(0, 0, W, H);
+
+            // Stacked blood river waves â€” full bottom half
+            for (let w = 0; w < 8; w++) {
+                const yBase = H * 0.45 + w * 40 + Math.sin(t * 0.7 + w * 0.4) * 18;
+                const wa = 0.06 + w * 0.03;
+                const dr = Math.floor(80 + w * 15);
+                ctx.fillStyle = `rgba(${dr},0,0,${wa})`;
+                ctx.beginPath();
+                ctx.moveTo(0, yBase);
+                for (let x = 0; x <= W; x += 15) {
+                    const waveY = yBase + Math.sin((x / W) * Math.PI * 5 + t * 2 + w * 0.6) * 18;
+                    ctx.lineTo(x, waveY);
+                }
+                ctx.lineTo(W, H);
+                ctx.lineTo(0, H);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Dripping blood from top
+            for (let i = 0; i < 10; i++) {
+                const dx = (i * 113 + 40) % W;
+                const dlen = 30 + Math.sin(t * 1.5 + i * 1.2) * 20;
+                const da = 0.25 + Math.sin(t * 2 + i) * 0.1;
+                const dGrd = ctx.createLinearGradient(dx, 0, dx, dlen);
+                dGrd.addColorStop(0, `rgba(180,0,0,${da})`);
+                dGrd.addColorStop(1, `rgba(180,0,0,0)`);
+                ctx.fillStyle = dGrd;
+                ctx.fillRect(dx - 2, 0, 4, dlen);
+            }
+            break;
+        }
+
+        // â”€â”€ 8. FRAUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        case 8: {
+            ctx.fillStyle = '#030008';
+            ctx.fillRect(0, 0, W, H);
+
+            // Spiraling concentric void rings
+            for (let i = 1; i <= 12; i++) {
+                const baseR = 50 + i * 40;
+                const phase = t * (i % 2 === 0 ? 0.25 : -0.2) + i * 0.5;
+                const r = baseR + Math.sin(t * 0.6 + i) * 20;
+                const a = Math.max(0, 0.15 - i * 0.01);
+                const hue = 270 + Math.sin(t * 0.4 + i * 0.3) * 30;
+                ctx.strokeStyle = `hsla(${hue},100%,55%,${a})`;
+                ctx.lineWidth = 2.5 - i * 0.15;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, phase, phase + Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Central glowing void
+            const fraudCore = ctx.createRadialGradient(cx, cy, 0, cx, cy, 80);
+            fraudCore.addColorStop(0, `rgba(100,0,200,${0.1 + Math.sin(t * 2) * 0.05})`);
+            fraudCore.addColorStop(1, 'transparent');
+            ctx.fillStyle = fraudCore;
+            ctx.fillRect(0, 0, W, H);
+
+            // Purple particle sparks spiraling outward
+            for (let i = 0; i < 30; i++) {
+                const angle = t * 1.5 + (i / 30) * Math.PI * 2;
+                const radius = 60 + (t * 40 + i * 30) % 400;
+                const px = cx + Math.cos(angle) * radius;
+                const py = cy + Math.sin(angle) * radius;
+                const pa = Math.max(0, 0.4 - radius / 400);
+                ctx.fillStyle = `rgba(180,50,255,${pa})`;
+                ctx.beginPath();
+                ctx.arc(px, py, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            break;
+        }
+
+        // â”€â”€ 9. TREACHERY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        case 9: {
+            ctx.fillStyle = '#010810';
+            ctx.fillRect(0, 0, W, H);
+
+            // Icy floor â€” covers bottom 45%
+            const iceY = H * 0.55;
+            const iceFloor = ctx.createLinearGradient(0, iceY, 0, H);
+            iceFloor.addColorStop(0, 'rgba(0,150,200,0.08)');
+            iceFloor.addColorStop(0.5, 'rgba(0,200,240,0.14)');
+            iceFloor.addColorStop(1, 'rgba(0,230,255,0.22)');
+            ctx.fillStyle = iceFloor;
+            ctx.fillRect(0, iceY, W, H - iceY);
+
+            // Ice surface reflection shimmer
+            for (let i = 0; i < 20; i++) {
+                const rx = (i * 67 + t * 8) % W;
+                const ry = iceY + (i * 37) % (H - iceY);
+                const ra = 0.05 + Math.sin(t * 2.5 + i) * 0.04;
+                const rw = 20 + Math.sin(i) * 12;
+                ctx.fillStyle = `rgba(200,240,255,${ra})`;
+                ctx.beginPath();
+                ctx.ellipse(rx, ry, rw, 3, 0.3 + i * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Ice crack network (branching)
+            for (let i = 0; i < 18; i++) {
+                const crx = (i * 67 + 30) % W;
+                const cry = iceY + ((i * 47 + 10) % (H - iceY));
+                const crA = 0.10 + Math.sin(t * 0.4 + i * 0.7) * 0.04;
+                ctx.strokeStyle = `rgba(180,240,255,${crA})`;
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.moveTo(crx, cry);
+                // Main crack
+                const ang1 = i * 0.7;
+                ctx.lineTo(crx + Math.cos(ang1) * 40, cry + Math.sin(ang1) * 30);
+                ctx.moveTo(crx, cry);
+                // Branch
+                const ang2 = ang1 + Math.PI * 0.4;
+                ctx.lineTo(crx + Math.cos(ang2) * 25, cry + Math.sin(ang2) * 20);
+                ctx.stroke();
+            }
+
+            // Cold blue mist drifting at ice level
+            for (let i = 0; i < 8; i++) {
+                const mx = (Math.sin(t * 0.08 + i * 1.3) * 0.5 + 0.5) * W;
+                const my = iceY + (i * 40) % (H * 0.35);
+                const mr = 80 + Math.sin(t * 0.3 + i) * 30;
+                const ma = 0.06 + Math.sin(t * 0.5 + i * 0.8) * 0.03;
+                const mg = ctx.createRadialGradient(mx, my, 0, mx, my, mr);
+                mg.addColorStop(0, `rgba(0,200,240,${ma})`);
+                mg.addColorStop(1, 'transparent');
+                ctx.fillStyle = mg;
+                ctx.fillRect(0, 0, W, H);
+            }
+
+            // Stars in the frozen sky above ice
+            for (let i = 0; i < 60; i++) {
+                const sx = (i * 137.5) % W;
+                const sy = ((i * 79.3)) % iceY;
+                const sa = 0.2 + Math.sin(t * 1.5 + i * 0.9) * 0.2;
+                ctx.fillStyle = `rgba(200,230,255,${sa})`;
+                ctx.fillRect(sx, sy, 1, 1);
+            }
+            break;
+        }
+
         default:
             ctx.fillStyle = '#050505';
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            ctx.fillRect(0, 0, W, H);
     }
 }
 
 // ============================================
+// 8. GAME LOOP
+// ============================================
+
 // 8. GAME LOOP
 // ============================================
 
@@ -508,7 +755,7 @@ function gameLoop(timestamp) {
         collisionSystem.update();
         combatSystem.update(dt);
 
-        // Bullet lifetime management — release expired bullets back to pool
+        // Bullet lifetime management â€” release expired bullets back to pool
         const activeBullets = em.getEntitiesWith('Bullet');
         for (const bid of activeBullets) {
             const b = em.getComponent(bid, 'Bullet');
@@ -556,7 +803,7 @@ function gameLoop(timestamp) {
         if (players2.length > 0) {
             const playerPos = em.getComponent(players2[0], 'Position');
             if (playerPos) {
-                // Convert player world position → screen position using camera offset
+                // Convert player world position â†’ screen position using camera offset
                 const camPos = gameFeel.getCameraPosition();
                 const screenPlayerX = playerPos.x - camPos.x + GAME_WIDTH / 2;
                 const screenPlayerY = playerPos.y - camPos.y + GAME_HEIGHT / 2;
