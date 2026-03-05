@@ -1,0 +1,27 @@
+{
+  "name": "the-last-lightkeeper",
+  "version": "2.0.0",
+  "description": "9 Circles of Dante's Inferno - ECS Architecture",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:prod": "vite build --mode production"
+  },
+  "devDependencies": {
+    "rollup-plugin-obfuscator": "^1.1.0",
+    "terser": "^5.24.0",
+    "vite": "^5.0.0",
+    "vite-plugin-javascript-obfuscator": "^3.1.0"
+  },
+  "keywords": [
+    "game",
+    "canvas",
+    "ecs",
+    "dante",
+    "inferno"
+  ],
+  "author": "Developer",
+  "license": "MIT"
+}
