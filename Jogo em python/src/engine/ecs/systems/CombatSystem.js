@@ -5,13 +5,13 @@
  */
 
 export class CombatSystem {
-    constructor(entityManager, quadTree, enemyPool, bulletPool, particlePool) {
+    constructor(entityManager, quadTree, enemyPool, bulletPool, particleSystem) {
         this.em = entityManager;
         this.quadTree = quadTree; // Reuse spatial partitioning structure
         this.enemyPool = enemyPool;
         this.bulletPool = bulletPool;
-        this.particlePool = particlePool;
-        
+        this.particleSystem = particleSystem;
+
         this.combatEvents = [];
         this.performanceMetrics = {
             bulletsProcessed: 0,
@@ -19,7 +19,7 @@ export class CombatSystem {
             enemiesKilled: 0,
             friendlyFireIncidents: 0
         };
-        
+
         this.damageMultipliers = {
             'headshot': 2.0,
             'critical': 1.5,
@@ -46,7 +46,7 @@ export class CombatSystem {
         // Process each bullet
         for (const bullet of bullets) {
             if (this.em.getComponent(bullet, 'Inactive')) continue;
-            
+
             this.performanceMetrics.bulletsProcessed++;
             this.#processBullet(bullet);
         }
@@ -62,16 +62,16 @@ export class CombatSystem {
     #buildVulnerableQuadTree(vulnerableEntities) {
         // Clear and rebuild QuadTree
         this.quadTree.clear();
-        
+
         for (const entity of vulnerableEntities) {
             if (this.em.getComponent(entity, 'Inactive')) continue;
-            
+
             const pos = this.em.getComponent(entity, 'Position');
             const render = this.em.getComponent(entity, 'Renderable');
             const health = this.em.getComponent(entity, 'Health');
-            
+
             if (!pos || !render || !health) continue;
-            
+
             const entityRect = {
                 id: entity,
                 x: pos.x - render.radius,
@@ -85,7 +85,7 @@ export class CombatSystem {
                 maxHealth: health.max,
                 team: this.#getEntityTeam(entity)
             };
-            
+
             this.quadTree.insert(entityRect);
         }
     }
@@ -101,6 +101,8 @@ export class CombatSystem {
         const bBullet = this.em.getComponent(bullet, 'Bullet');
 
         if (!bPos || !bRend || !bDamage) return;
+        // bBullet may be null if component wasn't attached yet
+        const penetration = bBullet ? (bBullet.penetration || 1) : 1;
 
         const bulletRect = {
             id: bullet,
@@ -113,7 +115,7 @@ export class CombatSystem {
             radius: bRend.radius,
             damage: bDamage.amount,
             owner: bDamage.owner,
-            penetration: bBullet.penetration || 1,
+            penetration: penetration,
             team: this.#getEntityTeam(bDamage.owner)
         };
 
@@ -137,13 +139,13 @@ export class CombatSystem {
             if (distanceSq < (radiiSum * radiiSum)) {
                 // Calculate damage with multipliers
                 const damage = this.#calculateDamage(bulletRect, target, dx, dy);
-                
+
                 // Apply damage
                 this.#applyDamage(target.id, damage, bulletRect.owner);
-                
+
                 // Create impact effects
                 this.#createImpactEffects(target.cx, target.cy, damage, target.team);
-                
+
                 // Record combat event
                 this.combatEvents.push({
                     type: 'hit',
@@ -152,9 +154,9 @@ export class CombatSystem {
                     damage: damage,
                     position: { x: target.cx, y: target.cy }
                 });
-                
+
                 hitCount++;
-                
+
                 // Check bullet penetration
                 if (hitCount >= bulletRect.penetration) {
                     this.bulletPool.release(bullet);
@@ -174,22 +176,22 @@ export class CombatSystem {
      */
     #calculateDamage(bullet, target, dx, dy) {
         let damage = bullet.damage;
-        
+
         // Check for critical hit (random chance)
         if (Math.random() < 0.1) { // 10% critical chance
             damage *= this.damageMultipliers.critical;
         }
-        
+
         // Check for weak point hits (based on hit location)
         const hitAngle = Math.atan2(dy, dx);
         if (this.#isWeakPointHit(target.team, hitAngle)) {
             damage *= this.damageMultipliers.weak_point;
         }
-        
+
         // Apply damage reduction based on target type
         const reduction = this.#getDamageReduction(target.team);
         damage *= (1 - reduction);
-        
+
         return Math.round(damage);
     }
 
@@ -235,21 +237,21 @@ export class CombatSystem {
     #applyDamage(entityId, amount, attacker) {
         const health = this.em.getComponent(entityId, 'Health');
         if (!health) return;
-        
+
         health.current = Math.max(0, health.current - amount);
         this.performanceMetrics.damageDealt += amount;
-        
+
         // Visual feedback - hit flash
         this.#applyHitFlash(entityId);
-        
+
         // Screen shake for significant damage
         if (amount > 20) {
-            this.em.addComponent(entityId, 'ScreenShake', { 
-                intensity: Math.min(5, amount / 10), 
-                duration: 0.2 
+            this.em.addComponent(entityId, 'ScreenShake', {
+                intensity: Math.min(5, amount / 10),
+                duration: 0.2
             });
         }
-        
+
         // Check for death
         if (health.current <= 0) {
             this.#handleDeath(entityId, attacker);
@@ -263,15 +265,15 @@ export class CombatSystem {
     #applyHitFlash(entityId) {
         const render = this.em.getComponent(entityId, 'Renderable');
         if (!render) return;
-        
+
         // Store original color
         if (!render.originalColor) {
             render.originalColor = render.color;
         }
-        
+
         // Flash white then red
         render.color = '#ffffff';
-        
+
         // Restore color after delay
         setTimeout(() => {
             const currentRender = this.em.getComponent(entityId, 'Renderable');
@@ -292,13 +294,13 @@ export class CombatSystem {
             this.#handlePlayerDeath(entityId, killer);
             return;
         }
-        
+
         // Check if enemy died
         if (this.em.hasComponent(entityId, 'EnemyAI')) {
             this.#handleEnemyDeath(entityId, killer);
             return;
         }
-        
+
         // Generic death handling
         this.em.addComponent(entityId, 'Dead', {});
     }
@@ -311,13 +313,13 @@ export class CombatSystem {
     #handlePlayerDeath(playerId, killer) {
         // Add death component for GameState to process
         this.em.addComponent(playerId, 'Dead', { killer: killer });
-        
+
         // Create death effects
         const pos = this.em.getComponent(playerId, 'Position');
         if (pos) {
             this.#createDeathEffects(pos.x, pos.y, 'player');
         }
-        
+
         console.log(`[Combat] Player killed by entity ${killer}`);
     }
 
@@ -332,15 +334,15 @@ export class CombatSystem {
         if (pos) {
             this.#createDeathEffects(pos.x, pos.y, 'enemy');
         }
-        
+
         // Get enemy type for scoring
         const enemy = this.em.getComponent(enemyId, 'EnemyAI');
         const enemyType = enemy ? enemy.type : 'default';
-        
+
         // Return to pool
         this.enemyPool.release(enemyId);
         this.performanceMetrics.enemiesKilled++;
-        
+
         // Record combat event
         this.combatEvents.push({
             type: 'kill',
@@ -349,7 +351,7 @@ export class CombatSystem {
             enemyType: enemyType,
             position: pos ? { x: pos.x, y: pos.y } : null
         });
-        
+
         console.log(`[Combat] Enemy ${enemyType} killed by entity ${killer}`);
     }
 
@@ -361,31 +363,21 @@ export class CombatSystem {
      * @param {string} team - Target team
      */
     #createImpactEffects(x, y, damage, team) {
-        if (!this.particlePool) return;
-        
+        if (!this.particleSystem) return;
+
         const particleCount = Math.min(10, Math.max(3, damage / 10));
         const color = team === 'enemy' ? '#ff3333' : '#ffcc00';
-        
+
         for (let i = 0; i < particleCount; i++) {
             const angle = (Math.PI * 2 * i) / particleCount;
             const speed = 50 + Math.random() * 100;
             const vx = Math.cos(angle) * speed;
             const vy = Math.sin(angle) * speed;
-            
-            const particle = this.particlePool.get(x, y, vx, vy);
-            
-            const render = this.em.getComponent(particle, 'Renderable');
-            if (render) {
-                render.color = color;
-                render.radius = 2 + Math.random() * 2;
-                render.alpha = 0.8;
-            }
-            
-            const particleComp = this.em.getComponent(particle, 'Particle');
-            if (particleComp) {
-                particleComp.life = 20 + Math.random() * 20;
-                particleComp.maxLife = particleComp.life;
-            }
+
+            const life = 0.3 + Math.random() * 0.3;
+            const size = 2 + Math.random() * 2;
+
+            this.particleSystem.emit(x, y, vx, vy, life, size, color);
         }
     }
 
@@ -396,38 +388,28 @@ export class CombatSystem {
      * @param {string} type - Death type
      */
     #createDeathEffects(x, y, type) {
-        if (!this.particlePool) return;
-        
+        if (!this.particleSystem) return;
+
         const particleCount = type === 'player' ? 30 : 20;
         const color = type === 'player' ? '#00ccff' : '#ff3333';
-        
+
         for (let i = 0; i < particleCount; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 100 + Math.random() * 200;
             const vx = Math.cos(angle) * speed;
             const vy = Math.sin(angle) * speed;
-            
-            const particle = this.particlePool.get(x, y, vx, vy);
-            
-            const render = this.em.getComponent(particle, 'Renderable');
-            if (render) {
-                render.color = color;
-                render.radius = 3 + Math.random() * 4;
-                render.alpha = 1.0;
-            }
-            
-            const particleComp = this.em.getComponent(particle, 'Particle');
-            if (particleComp) {
-                particleComp.life = 30 + Math.random() * 30;
-                particleComp.maxLife = particleComp.life;
-            }
+
+            const life = 0.5 + Math.random() * 0.5;
+            const size = 3 + Math.random() * 4;
+
+            this.particleSystem.emit(x, y, vx, vy, life, size, color);
         }
-        
+
         // Screen shake for dramatic deaths
         const intensity = type === 'player' ? 8 : 4;
-        this.em.addComponent(this.em.getEntitiesWith(['PlayerControlled'])[0], 'ScreenShake', { 
-            intensity: intensity, 
-            duration: 0.5 
+        this.em.addComponent(this.em.getEntitiesWith(['PlayerControlled'])[0], 'ScreenShake', {
+            intensity: intensity,
+            duration: 0.5
         });
     }
 
@@ -479,9 +461,9 @@ export class CombatSystem {
             'Traidores': 50,
             'default': 10
         };
-        
+
         const score = scoreValues[event.enemyType] || scoreValues.default;
-        
+
         // Update game state score
         const gameState = this.em.getEntitiesWith(['GameData'])[0];
         if (gameState) {

@@ -8,11 +8,15 @@ import { QuadTree } from '../../math/QuadTree.js';
 import { GAME_CONFIG } from '../../../game/config/constants.js';
 
 export class CollisionSystem {
-    constructor(entityManager, boundsWidth = GAME_CONFIG.width, boundsHeight = GAME_CONFIG.height) {
+    constructor(entityManager, boundsWidth = GAME_CONFIG.width, boundsHeight = GAME_CONFIG.height, bulletPool = null, enemyPool = null, orbPool = null, gameState = null) {
         this.em = entityManager;
         this.bounds = { x: 0, y: 0, width: boundsWidth, height: boundsHeight };
         this.quadTree = new QuadTree(this.bounds);
         this.collisionEvents = [];
+        this.bulletPool = bulletPool;
+        this.enemyPool = enemyPool;
+        this.orbPool = orbPool;
+        this.gameState = gameState;
     }
 
     /**
@@ -33,7 +37,7 @@ export class CollisionSystem {
             const pos = this.em.getComponent(entity, 'Position');
             const collider = this.em.getComponent(entity, 'Collider');
             const renderable = this.em.getComponent(entity, 'Renderable');
-            
+
             if (!pos || !collider) continue;
 
             const radius = collider.radius || renderable?.radius || 10;
@@ -49,7 +53,7 @@ export class CollisionSystem {
                 cy: pos.y,
                 layer: collider.layer || 'default'
             };
-            
+
             collidableData.push(rect);
             this.quadTree.insert(rect);
         }
@@ -57,7 +61,7 @@ export class CollisionSystem {
         // 4. Check Collisions (O(n log n) with QuadTree)
         for (let i = 0; i < collidableData.length; i++) {
             const objA = collidableData[i];
-            
+
             // Get only objects in same region from QuadTree
             const candidates = [];
             this.quadTree.retrieve(candidates, objA);
@@ -96,7 +100,7 @@ export class CollisionSystem {
     resolveCollision(objA, objB, dx, dy, distanceSq, radiiSum) {
         const distance = Math.sqrt(distanceSq) || 1; // Fallback if distance is 0
         const overlap = radiiSum - distance;
-        
+
         // Normalized separation vector
         const nx = dx / distance;
         const ny = dy / distance;
@@ -136,17 +140,17 @@ export class CollisionSystem {
             if (this.isPlayerEnemyCollision(event)) {
                 this.handlePlayerEnemyCollision(event);
             }
-            
+
             // Player-Orb collision
             else if (this.isPlayerOrbCollision(event)) {
                 this.handlePlayerOrbCollision(event);
             }
-            
+
             // Bullet-Enemy collision
             else if (this.isBulletEnemyCollision(event)) {
                 this.handleBulletEnemyCollision(event);
             }
-            
+
             // Generic collision event
             else {
                 this.handleGenericCollision(event);
@@ -159,17 +163,17 @@ export class CollisionSystem {
      */
     isPlayerEnemyCollision(event) {
         return (event.layerA === 'player' && event.layerB === 'enemy') ||
-               (event.layerA === 'enemy' && event.layerB === 'player');
+            (event.layerA === 'enemy' && event.layerB === 'player');
     }
 
     isPlayerOrbCollision(event) {
         return (event.layerA === 'player' && event.layerB === 'orb') ||
-               (event.layerA === 'orb' && event.layerB === 'player');
+            (event.layerA === 'orb' && event.layerB === 'player');
     }
 
     isBulletEnemyCollision(event) {
         return (event.layerA === 'bullet' && event.layerB === 'enemy') ||
-               (event.layerA === 'enemy' && event.layerB === 'bullet');
+            (event.layerA === 'enemy' && event.layerB === 'bullet');
     }
 
     /**
@@ -178,16 +182,16 @@ export class CollisionSystem {
     handlePlayerEnemyCollision(event) {
         // Apply damage to player
         const playerHealth = this.em.getComponent(
-            event.layerA === 'player' ? event.entityA : event.entityB, 
+            event.layerA === 'player' ? event.entityA : event.entityB,
             'Health'
         );
-        
+
         if (playerHealth) {
             const enemy = this.em.getComponent(
-                event.layerA === 'enemy' ? event.entityA : event.entityB, 
+                event.layerA === 'enemy' ? event.entityA : event.entityB,
                 'Enemy'
             );
-            
+
             if (enemy) {
                 playerHealth.current -= enemy.damage;
                 // Add screen shake effect
@@ -200,47 +204,61 @@ export class CollisionSystem {
         // Collect orb
         const orbEntity = event.layerA === 'orb' ? event.entityA : event.entityB;
         const orb = this.em.getComponent(orbEntity, 'Orb');
-        
-        if (orb) {
-            // Remove orb entity
-            this.em.removeEntity(orbEntity);
-            
-            // Update score (would need game state reference)
-            // score += orb.value;
-            
-            // Add collection effect
-            const playerEntity = event.layerA === 'player' ? event.entityA : event.entityB;
-            this.em.addComponent(playerEntity, 'ScreenShake', { intensity: 1, duration: 0.1 });
+
+        if (orb && !this.em.getComponent(orbEntity, 'Inactive')) {
+            // Award score for orb collection
+            if (this.gameState) {
+                this.gameState.addScore(50);
+            }
+
+            // Return orb to pool instead of permanently destroying it
+            if (this.orbPool && this.orbPool.activeEntities.has(orbEntity)) {
+                this.orbPool.release(orbEntity);
+            } else {
+                this.em.removeEntity(orbEntity);
+            }
         }
     }
 
     handleBulletEnemyCollision(event) {
-        // Remove bullet
         const bulletEntity = event.layerA === 'bullet' ? event.entityA : event.entityB;
-        this.em.removeEntity(bulletEntity);
-        
-        // Damage enemy
         const enemyEntity = event.layerA === 'enemy' ? event.entityA : event.entityB;
+
+        // Damage enemy first
         const enemyHealth = this.em.getComponent(enemyEntity, 'Health');
-        
         if (enemyHealth) {
-            enemyHealth.current -= 34; // Bullet damage
-            
-            // Add hit effect
-            this.em.addComponent(enemyEntity, 'ScreenShake', { intensity: 2, duration: 0.2 });
-            
-            // Remove enemy if dead
+            const bulletComp = this.em.getComponent(bulletEntity, 'Bullet');
+            const dmg = bulletComp?.maxLife ? 34 : 34;
+            enemyHealth.current -= dmg;
+
+            // Return enemy to pool if dead
             if (enemyHealth.current <= 0) {
-                this.em.removeEntity(enemyEntity);
+                // Award score for enemy kill
+                if (this.gameState) {
+                    this.gameState.addScore(100);
+                }
+
+                if (this.enemyPool) {
+                    this.enemyPool.release(enemyEntity);
+                } else {
+                    this.em.removeEntity(enemyEntity);
+                }
             }
+        }
+
+        // Return bullet to pool (always, regardless of enemy status)
+        if (this.bulletPool && this.bulletPool.activeEntities.has(bulletEntity)) {
+            this.bulletPool.release(bulletEntity);
+        } else if (!this.bulletPool) {
+            this.em.removeEntity(bulletEntity);
         }
     }
 
     handleGenericCollision(event) {
         // Add generic collision component for systems to handle
-        this.em.addComponent(event.entityA, 'CollisionEvent', { 
-            with: event.entityB, 
-            normal: event.normal 
+        this.em.addComponent(event.entityA, 'CollisionEvent', {
+            with: event.entityB,
+            normal: event.normal
         });
     }
 

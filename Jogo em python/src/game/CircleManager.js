@@ -7,18 +7,17 @@
 import { CIRCLE_CONFIGS } from './config/constants.js';
 
 export class CircleManager {
-    constructor(entityManager, enemyPool, orbPool, particlePool) {
+    constructor(entityManager, enemyPool, orbPool, particleSystem) {
         this.em = entityManager;
         this.enemyPool = enemyPool;
         this.orbPool = orbPool;
-        this.particlePool = particlePool;
-        
+        this.particleSystem = particleSystem;
+
         this.currentActiveEnemies = [];
         this.currentActiveOrbs = [];
-        this.currentActiveParticles = [];
         this.currentCircle = 0;
         this.environmentEntity = null;
-        
+
         this.spawnPatterns = {
             circular: this.#spawnCircularPattern.bind(this),
             grid: this.#spawnGridPattern.bind(this),
@@ -76,19 +75,18 @@ export class CircleManager {
         for (const enemy of this.currentActiveEnemies) {
             this.enemyPool.release(enemy);
         }
-        
+
         for (const orb of this.currentActiveOrbs) {
             this.orbPool.release(orb);
         }
-        
-        for (const particle of this.currentActiveParticles) {
-            this.particlePool.release(particle);
+
+        if (this.particleSystem) {
+            this.particleSystem.clear();
         }
 
         // Reset tracking arrays
         this.currentActiveEnemies.length = 0;
         this.currentActiveOrbs.length = 0;
-        this.currentActiveParticles.length = 0;
 
         console.log(`[CircleManager] Cleared Circle ${this.currentCircle}`);
     }
@@ -100,7 +98,7 @@ export class CircleManager {
     setEnvironment(config) {
         // Update global environment entity (singleton in ECS)
         const envEntities = this.em.getEntitiesWith(['EnvironmentData']);
-        
+
         if (envEntities.length > 0) {
             const envData = this.em.getComponent(envEntities[0], 'EnvironmentData');
             envData.backgroundColor = config.backgroundColor;
@@ -137,7 +135,7 @@ export class CircleManager {
         for (let i = 0; i < positions.length; i++) {
             const { x, y } = positions[i];
             const orb = this.orbPool.get(x, y, 0, 0);
-            
+
             // Inject thematic color into orb renderable
             const render = this.em.getComponent(orb, 'Renderable');
             if (render) {
@@ -171,8 +169,8 @@ export class CircleManager {
             const enemy = this.enemyPool.get(x, y, 0, 0);
 
             // Set enemy AI type and behavior
-            this.em.addComponent(enemy, 'EnemyAI', { 
-                type: type, 
+            this.em.addComponent(enemy, 'EnemyAI', {
+                type: type,
                 aggroRange: 200 + (this.currentCircle * 20), // Scale with circle
                 attackCooldown: 2000 - (this.currentCircle * 100), // Faster attacks
                 behavior: this.#getEnemyBehavior(type)
@@ -208,39 +206,20 @@ export class CircleManager {
      * @param {number} density - Particle density
      */
     spawnEnvironmentParticles(effectType, density) {
-        if (!this.particlePool) return;
+        if (!this.particleSystem) return;
 
         for (let i = 0; i < density; i++) {
             const x = Math.random() * 1000;
             const y = Math.random() * 700;
-            
-            const particle = this.particlePool.get(x, y, 0, 0);
-            
-            // Set particle behavior based on effect type
-            const particleComponent = this.em.getComponent(particle, 'Particle');
-            if (particleComponent) {
-                particleComponent.effectType = effectType;
-                particleComponent.life = 60 + Math.random() * 60; // Random lifetime
-                particleComponent.maxLife = particleComponent.life;
-            }
 
-            // Set particle appearance
-            const render = this.em.getComponent(particle, 'Renderable');
-            if (render) {
-                render.color = this.#getParticleColor(effectType);
-                render.alpha = 0.3 + Math.random() * 0.4;
-                render.type = 'particle';
-            }
+            const life = 60 + Math.random() * 60; // Random lifetime
+            const color = this.#getParticleColor(effectType);
+            const movement = this.#getParticleMovement(effectType);
+            const vx = movement.vx;
+            const vy = movement.vy;
+            const size = 3;
 
-            // Set particle movement
-            const velocity = this.em.getComponent(particle, 'Velocity');
-            if (velocity) {
-                const movement = this.#getParticleMovement(effectType);
-                velocity.vx = movement.vx;
-                velocity.vy = movement.vy;
-            }
-
-            this.currentActiveParticles.push(particle);
+            this.particleSystem.emit(x, y, vx, vy, life, size, color);
         }
     }
 
@@ -252,14 +231,14 @@ export class CircleManager {
         const centerX = 500;
         const centerY = 350;
         const radius = options.radius || 300;
-        
+
         for (let i = 0; i < count; i++) {
             const angle = (i / count) * Math.PI * 2;
             const x = centerX + Math.cos(angle) * radius;
             const y = centerY + Math.sin(angle) * radius;
             positions.push({ x, y });
         }
-        
+
         return positions;
     }
 
@@ -270,7 +249,7 @@ export class CircleManager {
         const spacing = options.spacing || 100;
         const startX = options.startX || 500 - (cols * spacing) / 2;
         const startY = options.startY || 350 - (rows * spacing) / 2;
-        
+
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
                 if (positions.length >= count) break;
@@ -280,39 +259,39 @@ export class CircleManager {
                 });
             }
         }
-        
+
         return positions;
     }
 
     #spawnRandomPattern(count, options = {}) {
         const positions = [];
         const margin = options.margin || 50;
-        
+
         for (let i = 0; i < count; i++) {
             let x, y;
             let attempts = 0;
-            
+
             // Try to avoid overlapping
             do {
                 x = margin + Math.random() * (1000 - margin * 2);
                 y = margin + Math.random() * (700 - margin * 2);
                 attempts++;
             } while (this.#isPositionOccupied(x, y, options.minDistance || 50) && attempts < 10);
-            
+
             positions.push({ x, y });
         }
-        
+
         return positions;
     }
 
     #spawnPerimeterPattern(count, options = {}) {
         const positions = [];
         const margin = options.margin || 100;
-        
+
         for (let i = 0; i < count; i++) {
             const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
             let x, y;
-            
+
             switch (side) {
                 case 0: // top
                     x = margin + Math.random() * (1000 - margin * 2);
@@ -331,10 +310,10 @@ export class CircleManager {
                     y = margin + Math.random() * (700 - margin * 2);
                     break;
             }
-            
+
             positions.push({ x, y });
         }
-        
+
         return positions;
     }
 
@@ -347,7 +326,7 @@ export class CircleManager {
             ...this.currentActiveEnemies.map(id => this.em.getComponent(id, 'Position')),
             ...this.currentActiveOrbs.map(id => this.em.getComponent(id, 'Position'))
         ];
-        
+
         return allPositions.some(pos => {
             if (!pos) return false;
             const dx = pos.x - x;
@@ -434,7 +413,6 @@ export class CircleManager {
             currentCircle: this.currentCircle,
             activeEnemies: this.currentActiveEnemies.length,
             activeOrbs: this.currentActiveOrbs.length,
-            activeParticles: this.currentActiveParticles.length,
             environmentEntity: this.environmentEntity
         };
     }

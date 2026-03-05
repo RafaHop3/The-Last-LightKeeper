@@ -2,20 +2,60 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>The Last Lightkeeper</title>
-    <link rel="stylesheet" href="/src/styles.css">
     <style>
-        /* CSS de reset básico para garantir que o canvas ocupe a tela sem barras de rolagem */
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(255, 255, 255, 0.1); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #canvas-wrap {
+            position: relative;
+            width: 1000px;
+            height: 700px;
+            transform-origin: top left;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 1000px;
+            height: 700px;
+            cursor: crosshair;
+            box-shadow: 0 0 40px rgba(255, 80, 0, 0.2), 0 0 80px rgba(0, 0, 0, 0.8);
+        }
     </style>
 </head>
 <body>
-    
-    <canvas id="gameCanvas" width="1000" height="700"></canvas>
+    <div id="canvas-wrap">
+        <canvas id="gameCanvas" width="1000" height="700"></canvas>
+    </div>
+
+    <script>
+        // Scale canvas wrapper to fit viewport while maintaining aspect ratio
+        function scaleCanvas() {
+            const wrap = document.getElementById('canvas-wrap');
+            if (!wrap) return;
+            const ww = window.innerWidth;
+            const wh = window.innerHeight;
+            const scale = Math.min(ww / 1000, wh / 700);
+            wrap.style.transform = `scale(${scale})`;
+            // Center the scaled wrapper
+            const scaledW = 1000 * scale;
+            const scaledH = 700 * scale;
+            wrap.style.marginLeft = `${(ww - scaledW) / 2}px`;
+            wrap.style.marginTop = `${(wh - scaledH) / 2}px`;
+        }
+        window.addEventListener('resize', scaleCanvas);
+        scaleCanvas();
+    </script>
 
     <script type="module" src="/src/main.js"></script>
-
 </body>
 </html>

@@ -41,7 +41,7 @@ export class GameState {
             timeElapsed: 0,
             startTime: 0
         };
-        
+
         this.#initializeTransitionRules();
     }
 
@@ -202,6 +202,19 @@ export class GameState {
     }
 
     /**
+     * Add points to the score (safe public method)
+     * @param {number} points - Points to add (must be positive)
+     */
+    addScore(points) {
+        if (typeof points !== 'number' || points <= 0) return false;
+        this.#gameData.score = Math.min(
+            (this.#gameData.score || 0) + points,
+            1000000
+        );
+        return true;
+    }
+
+    /**
      * Advance to next circle with validation
      */
     advanceCircle() {
@@ -299,14 +312,14 @@ export class GameState {
             case 'totalOrbs':
             case 'timeElapsed':
                 return typeof value === 'number' && value >= 0;
-            
+
             case 'lightLevel':
             case 'playerHealth':
                 return typeof value === 'number' && value >= 0 && value <= 100;
-            
+
             case 'startTime':
                 return typeof value === 'number' && value > 0;
-            
+
             default:
                 return false;
         }
@@ -322,7 +335,7 @@ export class GameState {
             currentState: this.#currentState,
             currentCircle: this.#currentCircle,
             timeInCurrentState: now - this.#lastStateChange,
-            totalPlayTime: this.#currentState === STATES.PLAYING ? 
+            totalPlayTime: this.#currentState === STATES.PLAYING ?
                 now - this.#gameData.startTime : this.#gameData.timeElapsed,
             stateTransitions: this.#stateHistory.length,
             gameData: { ...this.#gameData }
@@ -330,7 +343,7 @@ export class GameState {
     }
 
     // --- Observer Pattern for Decoupled UI ---
-    
+
     /**
      * Subscribe to state changes
      * @param {Function} callback - Callback function
@@ -341,10 +354,10 @@ export class GameState {
         }
 
         this.#observers.push(callback);
-        
+
         // Immediately notify with current state
         callback(this.#currentState, this.#currentCircle, { ...this.#gameData });
-        
+
         // Return unsubscribe function
         return () => {
             const index = this.#observers.indexOf(callback);
@@ -392,7 +405,7 @@ export class GameState {
         const recentChanges = this.#stateHistory.filter(
             change => now - change.timestamp < 5000 // Last 5 seconds
         );
-        
+
         // Too many state changes in short time = potential exploit
         return recentChanges.length < 10;
     }

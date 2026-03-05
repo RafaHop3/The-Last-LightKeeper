@@ -9,32 +9,32 @@ export class AudioSystem {
         // Initialize Web Audio API (cross-browser compatible)
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         this.ctx = new AudioContext();
-        
+
         // Cache of decoded buffers in RAM (Our Audio Pool)
-        this.buffers = new Map(); 
+        this.buffers = new Map();
         this.loadingPromises = new Map();
-        
+
         // Master Gain Nodes (Separate mixing channels)
         this.bgmGain = this.ctx.createGain();
         this.bgmGain.connect(this.ctx.destination);
         this.bgmGain.gain.value = 0.5; // Default music volume
-        
+
         this.sfxGain = this.ctx.createGain();
         this.sfxGain.connect(this.ctx.destination);
         this.sfxGain.gain.value = 0.8; // Default SFX volume
-        
+
         this.masterGain = this.ctx.createGain();
         this.masterGain.connect(this.ctx.destination);
-        
+
         // Reconnect through master gain for global control
         this.bgmGain.disconnect();
         this.sfxGain.disconnect();
         this.bgmGain.connect(this.masterGain);
         this.sfxGain.connect(this.masterGain);
-        
+
         this.bgmSource = null;
         this.isUnlocked = false;
-        
+
         // Performance tracking
         this.metrics = {
             soundsPlayed: 0,
@@ -42,7 +42,7 @@ export class AudioSystem {
             bufferCount: 0,
             unlockTime: 0
         };
-        
+
         // Setup autoplay bypass
         this._setupUnlock();
     }
@@ -58,7 +58,7 @@ export class AudioSystem {
                     this.isUnlocked = true;
                     this.metrics.unlockTime = performance.now();
                     console.log('[AudioSystem] 🔊 AudioContext unlocked by user.');
-                    
+
                     // Play silent sound to fully unlock some browsers
                     const silentSource = this.ctx.createBufferSource();
                     const silentBuffer = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
@@ -70,15 +70,15 @@ export class AudioSystem {
                     console.error('[AudioSystem] Failed to unlock AudioContext:', error);
                 });
             }
-            
+
             // Clean up listeners after first interaction to save CPU
-            ['click', 'keydown', 'touchstart', 'mousedown'].forEach(evt => 
+            ['click', 'keydown', 'touchstart', 'mousedown'].forEach(evt =>
                 document.removeEventListener(evt, unlock)
             );
         };
 
         // Multiple event types for maximum compatibility
-        ['click', 'keydown', 'touchstart', 'mousedown'].forEach(evt => 
+        ['click', 'keydown', 'touchstart', 'mousedown'].forEach(evt =>
             document.addEventListener(evt, unlock, { once: true })
         );
     }
@@ -95,15 +95,15 @@ export class AudioSystem {
         if (this.loadingPromises.has(id)) {
             return this.loadingPromises.get(id);
         }
-        
+
         // Check if already loaded
         if (this.buffers.has(id)) {
             return Promise.resolve(this.buffers.get(id));
         }
-        
+
         const loadPromise = this._loadAndDecode(id, url);
         this.loadingPromises.set(id, loadPromise);
-        
+
         return loadPromise;
     }
 
@@ -116,28 +116,44 @@ export class AudioSystem {
     async _loadAndDecode(id, url) {
         try {
             const startTime = performance.now();
-            
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+            const response = await fetch(url).catch(() => null);
+            if (!response || !response.ok) {
+                console.warn(`[AudioSystem] Missing audio file ${id} at ${url}. Creating silent buffer.`);
+                return this.#createSilentBuffer(id);
             }
-            
+
             const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
-            
+            const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer).catch((e) => {
+                console.warn(`[AudioSystem] Could not decode ${id}. Creating silent buffer. Error:`, e.message);
+                return this.#createSilentBuffer(id);
+            });
+
             this.buffers.set(id, audioBuffer);
             this.loadingPromises.delete(id);
             this.metrics.bufferCount++;
-            
+
             const loadTime = performance.now() - startTime;
             console.log(`[AudioSystem] Loaded ${id} in ${loadTime.toFixed(2)}ms`);
-            
+
             return audioBuffer;
         } catch (error) {
             this.loadingPromises.delete(id);
-            console.error(`[AudioSystem] Failed to load audio (${id}):`, error);
-            throw error;
+            console.warn(`[AudioSystem] Gracefully failed to load audio (${id}), creating silent fallback:`, error.message);
+            return this.#createSilentBuffer(id);
         }
+    }
+
+    /**
+     * Creates a dummy silent buffer to prevent game crashes from missing audio assets
+     * @param {string} id - Audio identifier
+     */
+    #createSilentBuffer(id) {
+        // Create 1 second of silence
+        const silentBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
+        this.buffers.set(id, silentBuffer);
+        this.loadingPromises.delete(id);
+        return silentBuffer;
     }
 
     /**
@@ -148,14 +164,14 @@ export class AudioSystem {
      */
     playSFX(id, options = {}) {
         const startTime = performance.now();
-        
+
         if (!this.isUnlocked || !this.buffers.has(id)) {
             return null;
         }
 
         // Default options
-        const { 
-            volume = 1.0, 
+        const {
+            volume = 1.0,
             pitchRandomization = 0.1, // 10% pitch variation to avoid repetition
             panX = 0, // -1.0 (Left) to 1.0 (Right)
             pitch = 1.0,
@@ -191,12 +207,12 @@ export class AudioSystem {
             localGain.connect(this.sfxGain);
 
             source.start(0);
-            
+
             // Update metrics
             this.metrics.soundsPlayed++;
             const latency = performance.now() - startTime;
             this.metrics.averageLatency = (this.metrics.averageLatency * 0.9) + (latency * 0.1);
-            
+
             return source;
         } catch (error) {
             console.error(`[AudioSystem] Failed to play SFX (${id}):`, error);
@@ -220,7 +236,7 @@ export class AudioSystem {
         if (this.bgmSource) {
             const oldSource = this.bgmSource;
             this.bgmGain.gain.setTargetAtTime(0, this.ctx.currentTime, crossfadeTime / 4);
-            
+
             setTimeout(() => {
                 try {
                     oldSource.stop();
@@ -243,7 +259,7 @@ export class AudioSystem {
             // Smooth fade in
             this.bgmGain.gain.setValueAtTime(0, this.ctx.currentTime);
             this.bgmGain.gain.setTargetAtTime(targetVolume, this.ctx.currentTime, crossfadeTime / 4);
-            
+
             return this.bgmSource;
         } catch (error) {
             console.error(`[AudioSystem] Failed to play BGM (${id}):`, error);
@@ -259,7 +275,7 @@ export class AudioSystem {
         if (this.bgmSource) {
             if (fadeOutTime > 0) {
                 this.bgmGain.gain.setTargetAtTime(0, this.ctx.currentTime, fadeOutTime / 4);
-                
+
                 setTimeout(() => {
                     try {
                         this.bgmSource.stop();
@@ -335,13 +351,13 @@ export class AudioSystem {
      * @returns {Promise} - Loading promise
      */
     async loadSounds(soundMap) {
-        const promises = Object.entries(soundMap).map(([id, url]) => 
+        const promises = Object.entries(soundMap).map(([id, url]) =>
             this.loadSound(id, url).catch(error => {
                 console.error(`Failed to load ${id}:`, error);
                 return null;
             })
         );
-        
+
         return Promise.allSettled(promises);
     }
 
@@ -403,16 +419,16 @@ export class AudioSystem {
     destroy() {
         // Stop all sounds
         this.stopBGM(0);
-        
+
         // Close audio context
         if (this.ctx.state !== 'closed') {
             this.ctx.close();
         }
-        
+
         // Clear caches
         this.buffers.clear();
         this.loadingPromises.clear();
-        
+
         console.log('[AudioSystem] Audio system destroyed');
     }
 }

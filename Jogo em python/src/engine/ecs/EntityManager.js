@@ -55,7 +55,23 @@ export class EntityManager {
         }
     }
 
-    getEntitiesWith(...componentTypes) {
+    getEntitiesWith(...args) {
+        // Support both getEntitiesWith('A','B') and getEntitiesWith(['A','B'])
+        const componentTypes = Array.isArray(args[0]) ? args[0] : args;
+        const result = [];
+        for (const [entityId, components] of this.entities) {
+            // Skip inactive entities (pool-managed)
+            if (components.has('Inactive')) continue;
+            if (componentTypes.every(type => components.has(type))) {
+                result.push(entityId);
+            }
+        }
+        return result;
+    }
+
+    // Version that includes inactive entities (for pool management)
+    getEntitiesWithIncludeInactive(...args) {
+        const componentTypes = Array.isArray(args[0]) ? args[0] : args;
         const result = [];
         for (const [entityId, components] of this.entities) {
             if (componentTypes.every(type => components.has(type))) {
