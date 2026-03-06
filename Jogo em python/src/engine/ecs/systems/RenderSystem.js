@@ -54,16 +54,16 @@ export class RenderSystem {
 
             // Check for Invulnerable shield to apply visual effect
             const isInvulnerable = this.em.getComponent(entity, 'Invulnerable');
-            if (isInvulnerable) {
+            if (isInvulnerable && render.type !== 'player') {
                 // Pulsate between 0.2 and 0.8
                 this.ctx.globalAlpha = 0.5 + Math.sin(performance.now() / 150) * 0.3;
             }
 
             // Render the entity based on type
-            this.renderEntity(pos, render);
+            this.renderEntity(entity, pos, render);
             this.renderedEntities++;
 
-            if (isInvulnerable) {
+            if (isInvulnerable && render.type !== 'player') {
                 this.ctx.globalAlpha = 1.0; // Reset
             }
         }
@@ -92,10 +92,13 @@ export class RenderSystem {
      * Render individual entity based on type
      * Centralized rendering logic for maintainability
      */
-    renderEntity(pos, render) {
+    renderEntity(entity, pos, render) {
         this.ctx.save();
 
         switch (render.type) {
+            case 'player':
+                this.renderPlayer(entity, pos, render);
+                break;
             case 'circle':
                 this.renderCircle(pos.x, pos.y, render.radius, render.color);
                 break;
@@ -111,6 +114,91 @@ export class RenderSystem {
         }
 
         this.ctx.restore();
+    }
+
+    /**
+     * Render player with cute eyes that follow the Aim and a 10s sparkling shield
+     */
+    renderPlayer(entity, pos, render) {
+        const isInvulnerable = this.em.getComponent(entity, 'Invulnerable');
+        const aim = this.em.getComponent(entity, 'Aim');
+
+        // 1. Draw Invulnerable Shield (Aura)
+        if (isInvulnerable) {
+            const time = performance.now();
+            const pulsePhase = (Math.sin(time / 50) + 1) / 2; // Fast oscillation
+
+            this.ctx.beginPath();
+            this.ctx.arc(pos.x, pos.y, render.radius + 8 + Math.sin(time / 100) * 4, 0, Math.PI * 2);
+            this.ctx.lineWidth = 4;
+
+            if (pulsePhase > 0.5) {
+                this.ctx.strokeStyle = '#00BFFF'; // Bright cyan
+                this.ctx.fillStyle = 'rgba(0, 191, 255, 0.3)';
+            } else {
+                this.ctx.strokeStyle = '#000080'; // Dark blue
+                this.ctx.fillStyle = 'rgba(0, 0, 128, 0.3)';
+            }
+
+            this.ctx.fill();
+            this.ctx.stroke();
+        }
+
+        // 2. Draw Body (Medium Blue)
+        this.ctx.beginPath();
+        this.ctx.arc(pos.x, pos.y, render.radius, 0, Math.PI * 2);
+        this.ctx.fillStyle = render.color; // #4169E1
+        this.ctx.fill();
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeStyle = '#27408B'; // Dark outline
+        this.ctx.stroke();
+
+        // 3. Draw Eyes following mouse
+        let dx = 0, dy = -1; // Default looking up
+        if (aim) {
+            dx = aim.x - pos.x;
+            dy = aim.y - pos.y;
+        }
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const dirX = dx / dist;
+        const dirY = dy / dist;
+
+        // Calculate eye positions based on body rotation (facing direction)
+        const orthogonalX = -dirY;
+        const orthogonalY = dirX;
+
+        const eyeOffsetForward = render.radius * 0.4;
+        const eyeOffsetSideways = render.radius * 0.4;
+
+        // Left eye
+        const leftEyeX = pos.x + dirX * eyeOffsetForward + orthogonalX * eyeOffsetSideways;
+        const leftEyeY = pos.y + dirY * eyeOffsetForward + orthogonalY * eyeOffsetSideways;
+
+        // Right eye
+        const rightEyeX = pos.x + dirX * eyeOffsetForward - orthogonalX * eyeOffsetSideways;
+        const rightEyeY = pos.y + dirY * eyeOffsetForward - orthogonalY * eyeOffsetSideways;
+
+        const eyeRadius = render.radius * 0.35;
+        const pupilRadius = eyeRadius * 0.5;
+
+        // Pupils move towards the aim direction within the eye
+        const pupilDist = eyeRadius - pupilRadius;
+        const pupilOffsetX = dirX * pupilDist * 0.8;
+        const pupilOffsetY = dirY * pupilDist * 0.8;
+
+        // Draw whites
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
+        this.ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
+        this.ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Draw pupils
+        this.ctx.fillStyle = '#000000';
+        this.ctx.beginPath();
+        this.ctx.arc(leftEyeX + pupilOffsetX, leftEyeY + pupilOffsetY, pupilRadius, 0, Math.PI * 2);
+        this.ctx.arc(rightEyeX + pupilOffsetX, rightEyeY + pupilOffsetY, pupilRadius, 0, Math.PI * 2);
+        this.ctx.fill();
     }
 
     /**

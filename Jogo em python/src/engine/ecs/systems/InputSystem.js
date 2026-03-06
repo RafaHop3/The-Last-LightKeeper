@@ -277,6 +277,20 @@ export class InputSystem {
             velocity.vx = dirX * control.baseSpeed;
             velocity.vy = dirY * control.baseSpeed;
 
+            // ── Aiming ───────────────────────────────────────────────
+            const aim = this.em.getComponent(entity, 'Aim');
+            const mousePos = this.input.getMousePosition();
+            if (aim) {
+                // Se for touch (joystick de tiro), usa a posição do touch, senão usa mouse
+                if (this.input.shootTouch && this.input.shootTouch.active) {
+                    aim.x = this.input.shootTouch.x;
+                    aim.y = this.input.shootTouch.y;
+                } else {
+                    aim.x = mousePos.x;
+                    aim.y = mousePos.y;
+                }
+            }
+
             // ── Shooting ───────────────────────────────────────────────
             if (this.input.isMouseDown()) {
                 const mousePos = this.input.getMousePosition();

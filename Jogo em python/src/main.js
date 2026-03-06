@@ -158,7 +158,8 @@ function setupPlayer() {
     playerEntity = em.createEntity();
     em.addComponent(playerEntity, 'Position', { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 });
     em.addComponent(playerEntity, 'Velocity', { vx: 0, vy: 0 });
-    em.addComponent(playerEntity, 'Renderable', { color: '#00ffcc', radius: 15 });
+    // Personagem base em Azul Médio, com type 'player' explícito
+    em.addComponent(playerEntity, 'Renderable', { color: '#4169E1', radius: 15, type: 'player' });
     em.addComponent(playerEntity, 'Collider', { radius: 15, layer: 'player' });
     em.addComponent(playerEntity, 'PlayerControlled', { baseSpeed: 320 });
     em.addComponent(playerEntity, 'Health', { current: 100, max: 100 });
@@ -171,6 +172,7 @@ function setupPlayer() {
         minFireDistance: 10
     });
     em.addComponent(playerEntity, 'Collector', { count: 0 });
+    em.addComponent(playerEntity, 'Aim', { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 });
 
     console.log('[Game] Player created. Entity ID:', playerEntity);
     return playerEntity;
@@ -184,7 +186,7 @@ function startGame() {
     particleSystem.clear();
 
     setupPlayer();
-    em.addComponent(playerEntity, 'Invulnerable', { timer: 5.0 }); // Shield in Limbo (Circle 1)
+    em.addComponent(playerEntity, 'Invulnerable', { timer: 10.0 }); // Shield in Limbo (Circle 1)
     circleManager.loadCircle(1);
 
     // Transition from MENU to PLAYING
@@ -243,9 +245,9 @@ function checkGameConditions() {
             gameState.advanceCircle();
             circleManager.loadCircle(nextCircle);
             if (playerEntity !== null) {
-                em.addComponent(playerEntity, 'Invulnerable', { timer: 5.0 }); // Shield on new circle
+                em.addComponent(playerEntity, 'Invulnerable', { timer: 10.0 }); // Shield on new circle
             }
-            hudSystem.addNotification?.(`âš”ï¸ CÃ­rculo ${nextCircle}: ${CIRCLE_CONFIGS[nextCircle]?.name}`, '#ff8800', 3000);
+            hudSystem.addNotification?.(`🛡️ Círculo ${nextCircle}: ${CIRCLE_CONFIGS[nextCircle]?.name}`, '#ff8800', 3000);
             hudSystem.addNotification?.(`+${bonusPoints.toLocaleString()} BONUS!`, '#ffdd00', 2500);
         } else {
             // Award final boss bonus

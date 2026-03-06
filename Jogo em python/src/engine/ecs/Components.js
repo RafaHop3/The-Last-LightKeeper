@@ -23,7 +23,8 @@ export const Components = {
     Trail: (color = '#00ffff', duration = 0.5) => ({ color, duration }),
     ScreenShake: (intensity = 2, duration = 0.2) => ({ intensity, duration }),
     HitStop: (frames = 3) => ({ frames }),
-    Invulnerable: (timer = 5.0) => ({ timer })
+    Invulnerable: (timer = 5.0) => ({ timer }),
+    Aim: (x = 0, y = 0) => ({ x, y })
 };
 
 // Component type constants for validation
@@ -45,5 +46,6 @@ export const COMPONENT_TYPES = {
     TRAIL: 'Trail',
     SCREEN_SHAKE: 'ScreenShake',
     HIT_STOP: 'HitStop',
-    INVULNERABLE: 'Invulnerable'
+    INVULNERABLE: 'Invulnerable',
+    AIM: 'Aim'
 };
