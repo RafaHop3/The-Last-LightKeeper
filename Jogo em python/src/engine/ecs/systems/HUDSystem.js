@@ -392,7 +392,7 @@ export class HUDSystem {
         this.ctx.fillStyle = '#ffffff';
         this.ctx.textAlign = 'center';
         this.ctx.font = 'bold 44px monospace';
-        this.ctx.fillText('THE LAST LIGHTKEEPER', cx, cy - 100);
+        this.ctx.fillText('THE KEEPER OF THE 9', cx, cy - 100);
         this.ctx.shadowBlur = 0;
         this.ctx.shadowColor = 'transparent';
 
