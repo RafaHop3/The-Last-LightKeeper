@@ -48,6 +48,16 @@ export class CombatSystem {
             }
         }
 
+        // --- Invulnerable: process frame-synced shield timer ---
+        const invulnerables = this.em.getEntitiesWith(['Invulnerable']);
+        for (const id of invulnerables) {
+            const inv = this.em.getComponent(id, 'Invulnerable');
+            inv.timer -= dt;
+            if (inv.timer <= 0) {
+                this.em.removeComponent(id, 'Invulnerable');
+            }
+        }
+
         // Get all active bullets and vulnerable entities
         const bullets = this.em.getEntitiesWith(['Damage', 'Position', 'Renderable']);
         const vulnerableEntities = this.em.getEntitiesWith(['Health', 'Position', 'Renderable']);
@@ -247,6 +257,9 @@ export class CombatSystem {
      * @param {number} attacker - Attacker entity ID
      */
     #applyDamage(entityId, amount, attacker) {
+        // Shield bypass: ignore all damage if entity is invulnerable
+        if (this.em.getComponent(entityId, 'Invulnerable')) return;
+
         const health = this.em.getComponent(entityId, 'Health');
         if (!health) return;
 

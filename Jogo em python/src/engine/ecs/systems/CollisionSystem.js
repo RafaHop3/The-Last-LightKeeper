@@ -180,11 +180,13 @@ export class CollisionSystem {
      * Collision handlers
      */
     handlePlayerEnemyCollision(event) {
+        const playerEntity = event.layerA === 'player' ? event.entityA : event.entityB;
+
+        // Shield bypass
+        if (this.em.getComponent(playerEntity, 'Invulnerable')) return;
+
         // Apply damage to player
-        const playerHealth = this.em.getComponent(
-            event.layerA === 'player' ? event.entityA : event.entityB,
-            'Health'
-        );
+        const playerHealth = this.em.getComponent(playerEntity, 'Health');
 
         if (playerHealth) {
             const enemy = this.em.getComponent(

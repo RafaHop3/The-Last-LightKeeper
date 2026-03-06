@@ -12,7 +12,7 @@ export class RenderSystem {
         this.ctx = context2d;
         this.width = canvasWidth;
         this.height = canvasHeight;
-        
+
         // Performance metrics
         this.renderedEntities = 0;
         this.culledEntities = 0;
@@ -25,7 +25,7 @@ export class RenderSystem {
      */
     update() {
         const startTime = performance.now();
-        
+
         // Reset metrics
         this.renderedEntities = 0;
         this.culledEntities = 0;
@@ -52,9 +52,20 @@ export class RenderSystem {
                 continue;
             }
 
+            // Check for Invulnerable shield to apply visual effect
+            const isInvulnerable = this.em.getComponent(entity, 'Invulnerable');
+            if (isInvulnerable) {
+                // Pulsate between 0.2 and 0.8
+                this.ctx.globalAlpha = 0.5 + Math.sin(performance.now() / 150) * 0.3;
+            }
+
             // Render the entity based on type
             this.renderEntity(pos, render);
             this.renderedEntities++;
+
+            if (isInvulnerable) {
+                this.ctx.globalAlpha = 1.0; // Reset
+            }
         }
 
         // 3. Render UI/HUD last (on top of everything)
@@ -70,9 +81,9 @@ export class RenderSystem {
      */
     isEntityOffScreen(x, y, radius) {
         return (
-            x + radius < 0 || 
+            x + radius < 0 ||
             x - radius > this.width ||
-            y + radius < 0 || 
+            y + radius < 0 ||
             y - radius > this.height
         );
     }
@@ -83,7 +94,7 @@ export class RenderSystem {
      */
     renderEntity(pos, render) {
         this.ctx.save();
-        
+
         switch (render.type) {
             case 'circle':
                 this.renderCircle(pos.x, pos.y, render.radius, render.color);
@@ -98,7 +109,7 @@ export class RenderSystem {
                 // Fallback to circle rendering
                 this.renderCircle(pos.x, pos.y, render.radius, render.color);
         }
-        
+
         this.ctx.restore();
     }
 
@@ -122,14 +133,14 @@ export class RenderSystem {
         this.ctx.arc(x, y, radius, 0, Math.PI * 2);
         this.ctx.fillStyle = color;
         this.ctx.fill();
-        
+
         // Eyes
         this.ctx.fillStyle = '#ffff00';
         this.ctx.beginPath();
         this.ctx.arc(x - radius * 0.3, y - radius * 0.2, radius * 0.15, 0, Math.PI * 2);
         this.ctx.arc(x + radius * 0.3, y - radius * 0.2, radius * 0.15, 0, Math.PI * 2);
         this.ctx.fill();
-        
+
         // Horns
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth = 3;
@@ -150,12 +161,12 @@ export class RenderSystem {
         gradient.addColorStop(0, color);
         gradient.addColorStop(0.5, color + '88');
         gradient.addColorStop(1, 'transparent');
-        
+
         this.ctx.fillStyle = gradient;
         this.ctx.beginPath();
         this.ctx.arc(x, y, radius * 2, 0, Math.PI * 2);
         this.ctx.fill();
-        
+
         // Core
         this.renderCircle(x, y, radius, color);
     }
@@ -192,29 +203,29 @@ export class RenderSystem {
         const barHeight = 20;
         const x = 20;
         const y = this.height - 40;
-        
+
         // Background
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         this.ctx.fillRect(x, y, barWidth, barHeight);
-        
+
         // Health fill
         const healthPercent = health.current / health.max;
-        const healthColor = healthPercent > 0.5 ? '#00ff00' : 
-                           healthPercent > 0.25 ? '#ffff00' : '#ff0000';
-        
+        const healthColor = healthPercent > 0.5 ? '#00ff00' :
+            healthPercent > 0.25 ? '#ffff00' : '#ff0000';
+
         this.ctx.fillStyle = healthColor;
         this.ctx.fillRect(x, y, barWidth * healthPercent, barHeight);
-        
+
         // Border
         this.ctx.strokeStyle = '#ffffff';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(x, y, barWidth, barHeight);
-        
+
         // Text
         this.ctx.fillStyle = '#ffffff';
         this.ctx.font = '14px monospace';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(`HP: ${Math.max(0, health.current)}/${health.max}`, x + barWidth/2, y + barHeight/2 + 5);
+        this.ctx.fillText(`HP: ${Math.max(0, health.current)}/${health.max}`, x + barWidth / 2, y + barHeight / 2 + 5);
     }
 
     /**

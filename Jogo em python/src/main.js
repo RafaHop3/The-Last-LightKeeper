@@ -184,6 +184,7 @@ function startGame() {
     particleSystem.clear();
 
     setupPlayer();
+    em.addComponent(playerEntity, 'Invulnerable', { timer: 5.0 }); // Shield in Limbo (Circle 1)
     circleManager.loadCircle(1);
 
     // Transition from MENU to PLAYING
@@ -241,6 +242,9 @@ function checkGameConditions() {
 
             gameState.advanceCircle();
             circleManager.loadCircle(nextCircle);
+            if (playerEntity !== null) {
+                em.addComponent(playerEntity, 'Invulnerable', { timer: 5.0 }); // Shield on new circle
+            }
             hudSystem.addNotification?.(`âš”ï¸ CÃ­rculo ${nextCircle}: ${CIRCLE_CONFIGS[nextCircle]?.name}`, '#ff8800', 3000);
             hudSystem.addNotification?.(`+${bonusPoints.toLocaleString()} BONUS!`, '#ffdd00', 2500);
         } else {
