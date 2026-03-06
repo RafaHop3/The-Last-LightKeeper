@@ -1,5 +1,4 @@
 [build]
-  base = "D:/Jogo em python"
   publish = "dist"
   command = "npm run build"
 
