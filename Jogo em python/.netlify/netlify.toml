@@ -7,10 +7,11 @@ headers = []
 [functions."*"]
 
 [build]
-publish = "D:\\"
+publish = "D:\\dist"
 publishOrigin = "config"
 commandOrigin = "config"
-command = "echo 'No build step needed for static site'"
+command = "npm run build"
+base = "D:\\Jogo em python"
 
 [build.environment]
 

@@ -1,19 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>The Last Lightkeeper</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body,
-        html {
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
             width: 100%;
             height: 100%;
             background-color: #000;
@@ -37,26 +30,13 @@
             cursor: crosshair;
             box-shadow: 0 0 40px rgba(255, 80, 0, 0.2), 0 0 80px rgba(0, 0, 0, 0.8);
         }
-
-        .footer {
-            position: absolute;
-            bottom: 15px;
-            width: 100%;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.4);
-            font-family: monospace, sans-serif;
-            font-size: 14px;
-            pointer-events: none;
-            z-index: 1000;
-        }
     </style>
+  <script type="module" crossorigin src="./assets/rqKlWKB7.js"></script>
 </head>
-
 <body>
     <div id="canvas-wrap">
         <canvas id="gameCanvas" width="1000" height="700"></canvas>
     </div>
-    <div class="footer">criado por: Rafael Machado Gomes Machado</div>
 
     <script>
         // Scale canvas wrapper to fit viewport while maintaining aspect ratio
@@ -77,7 +57,5 @@
         scaleCanvas();
     </script>
 
-    <script type="module" src="/src/main.js"></script>
 </body>
-
 </html>

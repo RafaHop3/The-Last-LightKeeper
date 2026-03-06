@@ -1,6 +1,7 @@
 [build]
-  publish = "."
-  command = "echo 'No build step needed for static site'"
+  base = "D:/Jogo em python"
+  publish = "dist"
+  command = "npm run build"
 
 [[redirects]]
   from = "/*"
