@@ -96,16 +96,13 @@ export class HUDSystem {
      * Update UI animations for smooth transitions
      */
     #updateAnimations() {
-        // Health bar animation
-        const players = this.em.getEntitiesWith(['PlayerControlled', 'Health']);
-        if (players.length > 0) {
-            const health = this.em.getComponent(players[0], 'Health');
-            if (health) {
-                this.animations.healthBar.target = (health.current / health.max) * 100;
-                this.animations.healthBar.current +=
-                    (this.animations.healthBar.target - this.animations.healthBar.current) *
-                    this.animations.healthBar.speed;
-            }
+        // Re-use #getPlayerData() — avoids a separate O(N) getEntitiesWith() query
+        const playerData = this.#getPlayerData();
+        if (playerData?.health) {
+            this.animations.healthBar.target = (playerData.health.current / playerData.health.max) * 100;
+            this.animations.healthBar.current +=
+                (this.animations.healthBar.target - this.animations.healthBar.current) *
+                this.animations.healthBar.speed;
         }
 
         // Score animation
@@ -125,7 +122,7 @@ export class HUDSystem {
      * Render playing state HUD
      */
     #renderPlayingHUD() {
-        // Get player data
+        // Get player data — single O(N) query reused by all sub-methods
         const playerData = this.#getPlayerData();
         if (!playerData) return;
 
@@ -140,8 +137,8 @@ export class HUDSystem {
         this.#renderCircleInfo(circleNumber, config);
         this.#renderOrbProgress(playerData.collector, config);
         this.#renderScore();
-        this.#renderMinimap();
-        this.#renderWeaponInfo();
+        this.#renderMinimap(playerData);
+        this.#renderWeaponInfo(playerData);
 
         // Restore context state
         this.ctx.restore();
@@ -261,8 +258,9 @@ export class HUDSystem {
 
     /**
      * Render minimap
+     * @param {Object} [playerData] - Pre-fetched player data (avoids extra O(N) query)
      */
-    #renderMinimap() {
+    #renderMinimap(playerData = null) {
         const mapSize = 120;
         const x = this.width - mapSize - 20;
         const y = this.height - mapSize - 20;
@@ -276,19 +274,18 @@ export class HUDSystem {
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(x, y, mapSize, mapSize);
 
-        // Player position
-        const player = this.em.getEntitiesWith(['PlayerControlled', 'Position'])[0];
-        if (player) {
-            const playerPos = this.em.getComponent(player, 'Position');
-            if (playerPos) {
-                const mapX = x + (playerPos.x / 1000) * mapSize;
-                const mapY = y + (playerPos.y / 700) * mapSize;
+        // Player position — use pre-fetched data or fall back to a query
+        const playerPos = playerData
+            ? this.em.getComponent(this.em.getEntitiesWith(['PlayerControlled'])[0], 'Position')
+            : this.em.getComponent(this.em.getEntitiesWith(['PlayerControlled', 'Position'])[0], 'Position');
+        if (playerPos) {
+            const mapX = x + (playerPos.x / 1000) * mapSize;
+            const mapY = y + (playerPos.y / 700) * mapSize;
 
-                this.ctx.fillStyle = this.colors.success;
-                this.ctx.beginPath();
-                this.ctx.arc(mapX, mapY, 3, 0, Math.PI * 2);
-                this.ctx.fill();
-            }
+            this.ctx.fillStyle = this.colors.success;
+            this.ctx.beginPath();
+            this.ctx.arc(mapX, mapY, 3, 0, Math.PI * 2);
+            this.ctx.fill();
         }
 
         // Enemy positions
@@ -309,12 +306,11 @@ export class HUDSystem {
 
     /**
      * Render weapon information
+     * @param {Object} [playerData] - Pre-fetched player data (avoids extra O(N) query)
      */
-    #renderWeaponInfo() {
-        const player = this.em.getEntitiesWith(['PlayerControlled', 'Weapon'])[0];
-        if (!player) return;
-
-        const weapon = this.em.getComponent(player, 'Weapon');
+    #renderWeaponInfo(playerData = null) {
+        const weapon = playerData?.weapon
+            ?? this.em.getComponent(this.em.getEntitiesWith(['PlayerControlled', 'Weapon'])[0], 'Weapon');
         if (!weapon) return;
 
         const x = 20;

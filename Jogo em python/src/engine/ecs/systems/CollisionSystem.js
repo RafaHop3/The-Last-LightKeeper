@@ -234,8 +234,9 @@ export class CollisionSystem {
         // Damage enemy first
         const enemyHealth = this.em.getComponent(enemyEntity, 'Health');
         if (enemyHealth) {
-            const bulletComp = this.em.getComponent(bulletEntity, 'Bullet');
-            const dmg = bulletComp?.maxLife ? 34 : 34;
+            // Read real damage from the Damage component (set in bulletPrefab at main.js)
+            const damageComp = this.em.getComponent(bulletEntity, 'Damage');
+            const dmg = damageComp?.amount ?? 34; // fallback 34 if component absent
             enemyHealth.current -= dmg;
 
             // Return enemy to pool if dead

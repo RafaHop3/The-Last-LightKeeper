@@ -31,10 +31,22 @@ export class CombatSystem {
      * Main combat update loop
      * Processes bullet impacts and applies damage
      */
-    update() {
+    update(dt = 0.016) {
         // Reset metrics
         this.performanceMetrics.bulletsProcessed = 0;
         this.combatEvents.length = 0;
+
+        // --- HitFlash: process frame-synced color restore (replaces setTimeout) ---
+        const flashing = this.em.getEntitiesWith(['HitFlash', 'Renderable']);
+        for (const id of flashing) {
+            const flash = this.em.getComponent(id, 'HitFlash');
+            flash.timer -= dt;
+            if (flash.timer <= 0) {
+                const r = this.em.getComponent(id, 'Renderable');
+                if (r && r.originalColor) r.color = r.originalColor;
+                this.em.removeComponent(id, 'HitFlash');
+            }
+        }
 
         // Get all active bullets and vulnerable entities
         const bullets = this.em.getEntitiesWith(['Damage', 'Position', 'Renderable']);
@@ -271,16 +283,9 @@ export class CombatSystem {
             render.originalColor = render.color;
         }
 
-        // Flash white then red
+        // Flash white — restored by HitFlash component in update() (frame-synced, pool-safe)
         render.color = '#ffffff';
-
-        // Restore color after delay
-        setTimeout(() => {
-            const currentRender = this.em.getComponent(entityId, 'Renderable');
-            if (currentRender && currentRender.originalColor) {
-                currentRender.color = currentRender.originalColor;
-            }
-        }, 100);
+        this.em.addComponent(entityId, 'HitFlash', { timer: 0.1 });
     }
 
     /**
@@ -407,10 +412,10 @@ export class CombatSystem {
 
         // Screen shake for dramatic deaths
         const intensity = type === 'player' ? 8 : 4;
-        this.em.addComponent(this.em.getEntitiesWith(['PlayerControlled'])[0], 'ScreenShake', {
-            intensity: intensity,
-            duration: 0.5
-        });
+        const pid = this.em.getEntitiesWith(['PlayerControlled'])[0];
+        if (pid !== undefined) {
+            this.em.addComponent(pid, 'ScreenShake', { intensity, duration: 0.5 });
+        }
     }
 
     /**

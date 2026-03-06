@@ -20,7 +20,7 @@ export const GAME_CONFIG = {
     width: 1000,
     height: 700,
     targetFPS: 60,
-    dt: 1/60,
+    fixedDt: 1 / 60,   // Theoretical reference — actual loop uses variable dt via performance.now()
     maxEntities: 1000,
     maxParticles: 800
 };
@@ -75,7 +75,7 @@ export const CIRCLES = [
 // ============================================
 
 export const ENEMY_TYPES = [
-    'lovers', 'glutton', 'hoarder', 'wrathful', 
+    'lovers', 'glutton', 'hoarder', 'wrathful',
     'heretic', 'violent', 'fraud', 'traitor', 'default'
 ];
 
@@ -151,14 +151,14 @@ export const UI_CONFIG = {
 // ============================================
 
 export const CIRCLE_CONFIGS = {
-    1: { 
-        name: 'LIMBO', 
-        orbsCount: 10, 
-        enemyCount: 6, 
-        enemyType: 'Sombras', 
-        backgroundColor: '#333333', 
-        particleEffect: 'fog', 
-        themeColor: '#aaaaaa', 
+    1: {
+        name: 'LIMBO',
+        orbsCount: 10,
+        enemyCount: 6,
+        enemyType: 'Sombras',
+        backgroundColor: '#333333',
+        particleEffect: 'fog',
+        themeColor: '#aaaaaa',
         enemyBaseSpeed: 100,
         ambientLight: 0.9,
         windForce: { x: 10, y: 0 },
@@ -166,14 +166,14 @@ export const CIRCLE_CONFIGS = {
         enemyPattern: 'perimeter',
         particleDensity: 30
     },
-    2: { 
-        name: 'LUST', 
-        orbsCount: 12, 
-        enemyCount: 7, 
-        enemyType: 'Amantes', 
-        backgroundColor: '#4a2533', 
-        particleEffect: 'wind_pink', 
-        themeColor: '#ff99cc', 
+    2: {
+        name: 'LUST',
+        orbsCount: 12,
+        enemyCount: 7,
+        enemyType: 'Amantes',
+        backgroundColor: '#4a2533',
+        particleEffect: 'wind_pink',
+        themeColor: '#ff99cc',
         enemyBaseSpeed: 120,
         ambientLight: 0.8,
         windForce: { x: 20, y: -5 },
@@ -181,14 +181,14 @@ export const CIRCLE_CONFIGS = {
         enemyPattern: 'perimeter',
         particleDensity: 40
     },
-    3: { 
-        name: 'GLUTTONY', 
-        orbsCount: 14, 
-        enemyCount: 6, 
-        enemyType: 'Glutões', 
-        backgroundColor: '#3b2f2f', 
-        particleEffect: 'rain_brown', 
-        themeColor: '#8b4513', 
+    3: {
+        name: 'GLUTTONY',
+        orbsCount: 14,
+        enemyCount: 6,
+        enemyType: 'Glutões',
+        backgroundColor: '#3b2f2f',
+        particleEffect: 'rain_brown',
+        themeColor: '#8b4513',
         enemyBaseSpeed: 90,
         ambientLight: 0.7,
         windForce: { x: 0, y: 10 },
@@ -196,14 +196,14 @@ export const CIRCLE_CONFIGS = {
         enemyPattern: 'random',
         particleDensity: 50
     },
-    4: { 
-        name: 'GREED', 
-        orbsCount: 16, 
-        enemyCount: 7, 
-        enemyType: 'Avarentos', 
-        backgroundColor: '#332a00', 
-        particleEffect: 'gold_sparkle', 
-        themeColor: '#ffd700', 
+    4: {
+        name: 'GREED',
+        orbsCount: 16,
+        enemyCount: 7,
+        enemyType: 'Avarentos',
+        backgroundColor: '#332a00',
+        particleEffect: 'gold_sparkle',
+        themeColor: '#ffd700',
         enemyBaseSpeed: 110,
         ambientLight: 0.8,
         windForce: { x: -10, y: 5 },
@@ -211,14 +211,14 @@ export const CIRCLE_CONFIGS = {
         enemyPattern: 'grid',
         particleDensity: 45
     },
-    5: { 
-        name: 'WRATH', 
-        orbsCount: 16, 
-        enemyCount: 8, 
-        enemyType: 'Furiosos', 
-        backgroundColor: '#4a0000', 
-        particleEffect: 'fire', 
-        themeColor: '#ff3333', 
+    5: {
+        name: 'WRATH',
+        orbsCount: 16,
+        enemyCount: 8,
+        enemyType: 'Furiosos',
+        backgroundColor: '#4a0000',
+        particleEffect: 'fire',
+        themeColor: '#ff3333',
         enemyBaseSpeed: 150,
         ambientLight: 0.6,
         windForce: { x: 30, y: -10 },
@@ -226,14 +226,14 @@ export const CIRCLE_CONFIGS = {
         enemyPattern: 'circular',
         particleDensity: 60
     },
-    6: { 
-        name: 'HERESY', 
-        orbsCount: 18, 
-        enemyCount: 7, 
-        enemyType: 'Hereges', 
-        backgroundColor: '#2a0800', 
-        particleEffect: 'flaming_tombs', 
-        themeColor: '#ff6600', 
+    6: {
+        name: 'HERESY',
+        orbsCount: 18,
+        enemyCount: 7,
+        enemyType: 'Hereges',
+        backgroundColor: '#2a0800',
+        particleEffect: 'flaming_tombs',
+        themeColor: '#ff6600',
         enemyBaseSpeed: 130,
         ambientLight: 0.5,
         windForce: { x: 25, y: 15 },
@@ -241,14 +241,14 @@ export const CIRCLE_CONFIGS = {
         enemyPattern: 'perimeter',
         particleDensity: 55
     },
-    7: { 
-        name: 'VIOLENCE', 
-        orbsCount: 18, 
-        enemyCount: 8, 
-        enemyType: 'Violentos', 
-        backgroundColor: '#5c0000', 
-        particleEffect: 'blood_river', 
-        themeColor: '#990000', 
+    7: {
+        name: 'VIOLENCE',
+        orbsCount: 18,
+        enemyCount: 8,
+        enemyType: 'Violentos',
+        backgroundColor: '#5c0000',
+        particleEffect: 'blood_river',
+        themeColor: '#990000',
         enemyBaseSpeed: 160,
         ambientLight: 0.4,
         windForce: { x: 40, y: 20 },
@@ -256,14 +256,14 @@ export const CIRCLE_CONFIGS = {
         enemyPattern: 'random',
         particleDensity: 70
     },
-    8: { 
-        name: 'FRAUD', 
-        orbsCount: 20, 
-        enemyCount: 9, 
-        enemyType: 'Fraudadores', 
-        backgroundColor: '#2e004d', 
-        particleEffect: 'purple_fog', 
-        themeColor: '#9933ff', 
+    8: {
+        name: 'FRAUD',
+        orbsCount: 20,
+        enemyCount: 9,
+        enemyType: 'Fraudadores',
+        backgroundColor: '#2e004d',
+        particleEffect: 'purple_fog',
+        themeColor: '#9933ff',
         enemyBaseSpeed: 140,
         ambientLight: 0.3,
         windForce: { x: -20, y: -10 },
@@ -271,14 +271,14 @@ export const CIRCLE_CONFIGS = {
         enemyPattern: 'grid',
         particleDensity: 65
     },
-    9: { 
-        name: 'TREACHERY', 
-        orbsCount: 20, 
-        enemyCount: 10, 
-        enemyType: 'Traidores', 
-        backgroundColor: '#001a33', 
-        particleEffect: 'ice_lake', 
-        themeColor: '#00ccff', 
+    9: {
+        name: 'TREACHERY',
+        orbsCount: 20,
+        enemyCount: 10,
+        enemyType: 'Traidores',
+        backgroundColor: '#001a33',
+        particleEffect: 'ice_lake',
+        themeColor: '#00ccff',
         enemyBaseSpeed: 180,
         ambientLight: 0.2,
         windForce: { x: -30, y: -15 },
